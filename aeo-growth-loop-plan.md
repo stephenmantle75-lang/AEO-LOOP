@@ -208,7 +208,7 @@ finding.created → validate event schema → Linear issue → Slack pulse → c
 
 Required event fields are `eventId`, `findingId`, `runId`, `topic`, `summary`, `confidence`, `dashboardUrl`, `linearAction`, and `createdAt`. `eventId` is the idempotency key. No raw provider payloads, visitor-level analytics, API keys, or private prompts are sent to Zapier.
 
-Zapier MCP is now connected in the Codex session (checked 2026-08-25). Linear is enabled and authenticated; Slack is discoverable but its actions still need to be enabled on this server. Before implementation, enable only the required Slack action and test both actions in a non-production destination. Zapier's official MCP documentation describes adding individual tools and testing the connection by asking the client to list available tools; its webhook actions support receiving and sending JSON events. [Zapier MCP quickstart](https://docs.zapier.com/mcp/quickstart) · [Zapier webhooks](https://zapier.com/apps/webhook/integrations)
+Zapier MCP is connected in the Codex session (checked 2026-08-25). Linear and Slack actions are enabled and authenticated. Slack has one connected account but no default account is selected yet; runtime actions must use an explicit approved connection until a default is chosen. Before implementation, confirm the destination channel and test both actions in a non-production destination. Zapier's official MCP documentation describes adding individual tools and testing the connection by asking the client to list available tools; its webhook actions support receiving and sending JSON events. [Zapier MCP quickstart](https://docs.zapier.com/mcp/quickstart) · [Zapier webhooks](https://zapier.com/apps/webhook/integrations)
 ---
 
 ## 6. Initial topic experiment
@@ -758,7 +758,7 @@ Tasks:
 - [ ] Add finding scoring.
 - [ ] Add evidence references to findings.
 - [ ] Create/update Linear issues.
-- [ ] Confirm the Zapier MCP server has least-privilege Linear and Slack actions enabled.
+- [ ] Confirm the Zapier MCP server has least-privilege Linear and Slack actions enabled, with an approved Slack destination connection.
 - [ ] Add the first runtime Zapier workflow: finding event → Linear issue → Slack pulse → delivery callback.
 - [ ] Add Slack notification blocks and Zapier delivery status to the dashboard.
 - [ ] Store agent prompt/model/version/cost.
