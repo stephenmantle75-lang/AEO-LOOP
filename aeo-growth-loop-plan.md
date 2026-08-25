@@ -180,6 +180,35 @@ Example:
 Firecrawl → extract page structure → crawl_pages table → evidence panel
 ```
 
+### Zapier integration boundary
+
+Zapier is an integration bridge, not the AEO LOOP database and not the authoritative scheduler. The recommended v1 arrangement is:
+
+```text
+Vercel Cron → AEO LOOP API → Postgres run/finding/outbox state
+                              ↓ signed, idempotent webhook
+                         Zapier workflow
+                         ├─ create/update Linear issue
+                         ├─ send Slack pulse
+                         └─ optional email or operator action
+                              ↓ callback/status poll
+                         AEO LOOP delivery status
+```
+
+There are two separate Zapier surfaces:
+
+1. **Zapier MCP for development/operator work.** The agent can use explicitly enabled, least-privilege actions such as inspecting a connection, sending a test Slack message, or creating a test Linear issue. These actions are not the deployed runtime.
+2. **Zapier runtime webhook or SDK integration.** The deployed AEO LOOP app sends a signed event after a finding is stored. Zapier performs the external actions, and the app records the delivery status and external IDs. This keeps the database authoritative even if Zapier is delayed or unavailable.
+
+The first Zapier workflow should be:
+
+```text
+finding.created → validate event schema → Linear issue → Slack pulse → callback delivery result
+```
+
+Required event fields are `eventId`, `findingId`, `runId`, `topic`, `summary`, `confidence`, `dashboardUrl`, `linearAction`, and `createdAt`. `eventId` is the idempotency key. No raw provider payloads, visitor-level analytics, API keys, or private prompts are sent to Zapier.
+
+Zapier MCP is now connected in the Codex session (checked 2026-08-25). Linear is enabled and authenticated; Slack is discoverable but its actions still need to be enabled on this server. Before implementation, enable only the required Slack action and test both actions in a non-production destination. Zapier's official MCP documentation describes adding individual tools and testing the connection by asking the client to list available tools; its webhook actions support receiving and sending JSON events. [Zapier MCP quickstart](https://docs.zapier.com/mcp/quickstart) · [Zapier webhooks](https://zapier.com/apps/webhook/integrations)
 ---
 
 ## 6. Initial topic experiment
@@ -729,7 +758,9 @@ Tasks:
 - [ ] Add finding scoring.
 - [ ] Add evidence references to findings.
 - [ ] Create/update Linear issues.
-- [ ] Add Slack notification blocks.
+- [ ] Confirm the Zapier MCP server has least-privilege Linear and Slack actions enabled.
+- [ ] Add the first runtime Zapier workflow: finding event → Linear issue → Slack pulse → delivery callback.
+- [ ] Add Slack notification blocks and Zapier delivery status to the dashboard.
 - [ ] Store agent prompt/model/version/cost.
 - [ ] Add human review status.
 
@@ -863,4 +894,3 @@ Before building the next layer, ask:
 > Can a person outside my laptop see the input, the evidence, the decision, the code change, the approval, and the result?
 
 If the answer is no, the layer is not finished.
-
