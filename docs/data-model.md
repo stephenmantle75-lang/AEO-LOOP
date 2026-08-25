@@ -4,6 +4,8 @@
 
 Supabase is the private system of record for the AEO growth loop. It stores what the collectors actually observed, what the analysis agent inferred, and which recommendation was approved for action. The public portfolio site does not expose this evidence directly.
 
+This is the v1 foundation, not the complete final schema. The plan lists additional domain tables for crawl runs, research batches, citations, metrics, experiments, deployments, and audit events. Those should be introduced as working vertical slices need them, rather than created as empty placeholders.
+
 Project: `AEO LOOP` in `mants org`
 Region: `eu-west-1`
 Supabase project ref: `kufgerwuvilhtxhjrsbl`
@@ -21,7 +23,7 @@ Vercel Cron
   -> approved GitHub change and site retest
 ```
 
-## Tables
+## V1 tables
 
 ### `runs`
 

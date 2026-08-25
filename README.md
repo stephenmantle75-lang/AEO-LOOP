@@ -1,8 +1,8 @@
 # AEO LOOP
 
-Private observatory and automation system for measuring whether controlled topics drive AI-search citations to [stephenmantle.com](https://www.stephenmantle.com), then turning verified evidence into human-approved site improvements.
+The overall AEO Growth Loop project: a database-backed Observatory, research collectors, analysis agents, workflow integrations, and CI/CD that measure whether useful answer pages on [stephenmantle.com](https://www.stephenmantle.com) are discovered and cited, then turn verified evidence into human-approved site improvements.
 
-## What this repository will contain
+## What this repository contains and will contain
 
 - Supabase migrations and the evidence data model.
 - Server-side collectors for Exa, Firecrawl, and Google Search Console.
@@ -11,7 +11,24 @@ Private observatory and automation system for measuring whether controlled topic
 - Human review and delivery through Linear, Zapier, and Slack.
 - GitHub Actions checks before any site change is merged.
 
-The public portfolio site remains a separate surface. It may publish approved insights, but it does not expose the private evidence database.
+This is the overall system repository, not a Supabase-only repository. Supabase is the database layer inside this project.
+
+The public portfolio site remains a separate repository: `stephenmantle-web`. It receives approved content or code changes from this loop, but it does not expose the private evidence database.
+
+## Architecture
+
+```text
+stephenmantle-web
+  → public answer pages and portfolio conversions
+  → AEO-LOOP collectors and Vercel cron
+  → Supabase runs / observations / findings
+  → Observatory dashboard and analysis agents
+  → Linear / Zapier / Slack
+  → human-approved GitHub PR
+  → portfolio deployment and follow-up measurement
+```
+
+The Observatory is a separately hosted app built from this repository. It is not a page embedded in the public portfolio.
 
 ## Current foundation
 
@@ -23,9 +40,15 @@ The first migration matches the live Supabase project in `mants org`:
 
 See [docs/data-model.md](docs/data-model.md) for the schema, provenance rules, and access boundary.
 
+## Current implementation status
+
+The first commit establishes the Supabase project contract and v1 migrations. The application shell, real provider adapters, daily jobs, dashboard queries, agent contracts, integrations, tests, and deployment configuration are the next vertical slices.
+
+No fake evidence is presented as live performance. Until a real collection run writes rows, the dashboard must show an explicit empty or not-connected state.
+
 ## Local setup
 
-1. Install the repository dependencies once the project package manifest is added.
+1. Install the repository dependencies once the application package manifest is added.
 2. Copy `.env.example` to `.env` and fill in values locally. Never commit `.env`.
 3. Use the Supabase CLI to run the migrations against a local database or the approved project.
 4. Run the test suite before opening a pull request.
