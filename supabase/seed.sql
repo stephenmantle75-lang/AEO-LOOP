@@ -1,0 +1,1 @@
+-- Intentionally empty: the first dashboard records must come from a real run.
