@@ -88,6 +88,12 @@ Supabase. It exposes provider health, citation rate from observed Exa checks,
 run duration/cost, target URL, and explicit provider errors. The page performs
 no provider calls and never turns a failed observation into a zero.
 
+The Observatory also derives a versioned `daily-pulse.v1` report from stored
+run, observation, and finding rows. The overview previews its KPI and funnel;
+`/reports/[id]` can reproduce the report from a stored run without calling a
+provider again. Clicks, engagement, comparison deltas, and delivery are shown
+as unavailable until their adapters and historical comparison windows exist.
+
 GitHub Actions now provides the CI boundary for this repository: lint,
 typecheck, tests, build, dependency audit, dependency review, and CodeQL run on
 pull requests and `main`. Vercel remains the CD boundary. See
@@ -114,9 +120,7 @@ findings, CI/CD, or portfolio changes proceed. See
 
 ## Current gap to the next slice
 
-The next implementation slice is not a public-site redesign. It is the
-measurement-to-reporting contract: repeated citation observations, Search
-Console and analytics adapters, a versioned report payload, and a real
-database-backed Observatory view for KPI deltas, funnel stages, biggest leaks,
-provider health, cost, findings, and delivery status. Only after that slice is
-trusted should the app send the first daily pulse to Slack.
+The next implementation slice is completing the measurement-to-reporting
+contract: repeated citation observations, Search Console and analytics
+adapters, persisted report payloads, KPI deltas, and delivery status. Only
+after that slice is trusted should the app send the first daily pulse to Slack.
