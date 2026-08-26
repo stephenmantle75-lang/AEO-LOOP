@@ -54,6 +54,12 @@ The analysis agent, findings delivery, GitHub Actions quality gate, human-approv
 
 No fake evidence is presented as live performance. Until a real collection run writes rows, the dashboard must show an explicit empty or not-connected state.
 
+The reporting contract for Mode B is documented in
+[docs/reporting-contract.md](docs/reporting-contract.md). It defines the daily
+Slack pulse, KPI dictionary, funnel/biggest-leak view, sanitized visual
+artifacts, and delivery idempotency. Slack is a reporting and operator surface;
+Supabase remains the source of truth.
+
 ## Local setup
 
 1. Install the repository dependencies with `pnpm install`.

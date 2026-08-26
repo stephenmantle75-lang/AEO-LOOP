@@ -24,6 +24,24 @@ Public answer page
   → follow-up observation
 ```
 
+## Five operating layers
+
+The implementation is intentionally understandable as five operational layers,
+matching the visual planning reference:
+
+| Layer | AEO LOOP responsibility | First review surface |
+|---|---|---|
+| Sync | Pull page, search, research, and analytics evidence | Run detail and provider health |
+| Sense | Normalize observations and compare repeated runs | Topics and evidence tables |
+| Decide | Produce evidence-backed findings and experiment candidates | Findings queue |
+| Act | Route approved work into Linear, GitHub, CI, and deployment | Work/release view |
+| Report | Summarize health, funnel movement, leaks, and next actions | Overview and `#aeo-growth-loop` |
+
+Slack is in Report and Delivery, not in the database layer. The database
+records the report payload and delivery status; Slack presents a concise,
+linked view for the operator. See [reporting-contract.md](reporting-contract.md)
+for the KPI, funnel, image, and idempotency contract.
+
 ## Review surfaces
 
 | Surface | Repository | Purpose |
@@ -69,3 +87,12 @@ The first Exa run is deliberately capped at one fixed prompt with
 `AEO_MAX_EXA_PROMPTS=1`. Increase that only after checking the stored cost and
 response quality. Search Console, analysis findings, Linear/Zapier/Slack, and
 approved portfolio changes remain separate slices.
+
+## Current gap to the next slice
+
+The next implementation slice is not a public-site redesign. It is the
+measurement-to-reporting contract: repeated citation observations, Search
+Console and analytics adapters, a versioned report payload, and a real
+database-backed Observatory view for KPI deltas, funnel stages, biggest leaks,
+provider health, cost, findings, and delivery status. Only after that slice is
+trusted should the app send the first daily pulse to Slack.
