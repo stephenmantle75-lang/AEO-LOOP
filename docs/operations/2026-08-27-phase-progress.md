@@ -23,7 +23,6 @@ Observatory boundary work.
   stored Firecrawl/Exa observations into review-only technical or citation-gap
   drafts. Drafts retain the exact observation IDs that caused them and cannot
   write to Supabase or trigger Linear, Slack, Zapier, GitHub, or Vercel.
-  report preview/detail route.
 - Phase 5 foundation: GitHub Actions quality gate, dependency review, CodeQL,
   Dependabot configuration, protected-main workflow, Vercel Git deployment,
   and local response-header hardening.
@@ -59,9 +58,6 @@ The experiment, integration, and architecture pages are explanatory control
 plane surfaces only. They do not imply that Search Console, Slack, Zapier, or
 model-backed analysis is active.
 
-- Persisted report/outbox/delivery tables.
-- Automated analysis-agent findings and experiment orchestration.
-- Portfolio redesign and public case-study proof.
 
 ## Manual gates remaining
 
@@ -78,10 +74,5 @@ model-backed analysis is active.
 6. Approve the first Slack/Zapier test only after a real report is trusted and
    the destination/event idempotency are confirmed.
 7. Use the protected GitHub PR path for any push, then verify the Vercel
-4. Connect Search Console and analytics only when ready to measure real search
-   and human traffic; keep those signals separate from synthetic citations.
-5. Approve the first Slack/Zapier test only after a real report is trusted and
-   the destination/event idempotency are confirmed.
-6. Use the protected GitHub PR path for any push, then verify the Vercel
    preview, production deployment, and follow-up observation before treating a
    site change as an experiment result.

@@ -67,11 +67,6 @@ The report route is currently a derived review artifact, and draft findings are
 review-only; Slack/Zapier delivery, Search Console, human analytics, report
 persistence, and the public/private Observatory access decision remain
 deferred.
-The analysis agent, findings delivery, human-approved PR flow, and final
-portfolio redesign are intentionally still later phases. The report route is
-currently a derived review artifact; Slack/Zapier delivery, Search Console,
-human analytics, report persistence, and the public/private Observatory access
-decision remain deferred.
 
 See [docs/ci-cd-security.md](docs/ci-cd-security.md) for the CI/CD flow,
 required GitHub settings, and secret boundary.
