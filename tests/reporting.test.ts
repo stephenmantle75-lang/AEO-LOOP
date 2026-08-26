@@ -97,7 +97,6 @@ describe("daily pulse report", () => {
     expect(report.links.report).toBe("https://aeo-loop.vercel.app/reports/run-1");
     expect(JSON.stringify(report)).not.toContain("provider detail");
   });
-
   it("keeps the persistence payload inside the versioned report contract", () => {
     const report = buildDailyPulseReport({ run, observations: [observation({})], findings: [] });
     const payload = toReportPayload(report);
