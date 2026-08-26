@@ -5,12 +5,15 @@ export type TopicDefinition = {
   prompts: string[];
 };
 
+export const defaultAeoTargetUrl =
+  "https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio";
+
 export const seoVsAeoTopic: TopicDefinition = {
   key: "seo-vs-aeo-portfolio",
   question: "What is the difference between SEO and AEO for a personal portfolio?",
   targetUrl:
     process.env.AEO_TARGET_URL ??
-    "https://aeo-loop.vercel.app/insights/seo-vs-aeo-portfolio",
+    defaultAeoTargetUrl,
   prompts: [
     "What is the difference between SEO and AEO for a personal portfolio?",
     "How should a personal portfolio use SEO and AEO together?",
