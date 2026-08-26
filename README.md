@@ -42,13 +42,21 @@ See [docs/data-model.md](docs/data-model.md) for the schema, provenance rules, a
 
 ## Current implementation status
 
-The first commit establishes the Supabase project contract and v1 migrations. The application shell, real provider adapters, daily jobs, dashboard queries, agent contracts, integrations, tests, and deployment configuration are the next vertical slices.
+The database contract is live and the first application vertical slice is now present:
+
+- a server-only Next.js/Vercel app shell with a real Supabase dashboard query;
+- a protected daily cron route at `/api/cron/daily-observation`;
+- one-topic Firecrawl page-integrity and bounded Exa citation collection;
+- idempotent daily run claims serialized by a Postgres advisory lock;
+- unit tests for the topic budget and server-environment fail-closed behavior.
+
+The analysis agent, findings delivery, GitHub Actions quality gate, human-approved PR flow, and final portfolio redesign are intentionally still later phases.
 
 No fake evidence is presented as live performance. Until a real collection run writes rows, the dashboard must show an explicit empty or not-connected state.
 
 ## Local setup
 
-1. Install the repository dependencies once the application package manifest is added.
+1. Install the repository dependencies with `pnpm install`.
 2. Copy `.env.example` to `.env` and fill in values locally. Never commit `.env`.
 3. Use the Supabase CLI to run the migrations against a local database or the approved project.
 4. Run the test suite before opening a pull request.
@@ -69,4 +77,4 @@ Only server-side jobs and dashboard routes may use `SUPABASE_SERVICE_ROLE_KEY`. 
 
 ## Status
 
-Database foundation complete. Dashboard, collectors, analysis agent, delivery automations, and CI/CD remain the next implementation layers.
+Database and first collection/dashboard slice complete. Before deployment, verify environment keys, run the test/build checks, then connect this repository to its dedicated Vercel project. Do not point the cron at production until the target page and provider keys are intentionally enabled.

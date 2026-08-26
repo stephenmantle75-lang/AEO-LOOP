@@ -75,3 +75,10 @@ All three tables have Row Level Security enabled. Anonymous and authenticated ta
 4. Preserve the original question/prompt used for an answer check.
 5. Keep raw/private payloads separate from public-safe dashboard responses.
 6. Never treat an AI-generated recommendation as a shipped change until a human approves the corresponding GitHub PR.
+
+## Run-claim safety
+
+`claim_daily_run()` serializes daily claims with a Postgres advisory lock. It
+returns `claimed=true` only when the idempotency key is new and no other daily
+run is currently `running`. Replaying the same key returns `reason=duplicate`;
+an overlapping daily job returns `reason=overlap`.

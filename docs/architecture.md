@@ -50,3 +50,22 @@ Build vertical slices rather than empty layers:
 3. Observation → finding → Observatory detail view.
 4. Finding → Linear/Zapier/Slack delivery.
 5. Approved finding → GitHub PR → CI → deployment → retest.
+
+## Current implementation slice
+
+The repository currently implements the first production-shaped slice without
+claiming a citation win:
+
+```text
+Vercel Cron (protected)
+  → claim_daily_run() with a Postgres advisory lock
+  → Firecrawl page integrity observation
+  → bounded Exa citation observations
+  → Supabase runs / observations
+  → Observatory reads the real records
+```
+
+The first Exa run is deliberately capped at one fixed prompt with
+`AEO_MAX_EXA_PROMPTS=1`. Increase that only after checking the stored cost and
+response quality. Search Console, analysis findings, Linear/Zapier/Slack, and
+approved portfolio changes remain separate slices.
