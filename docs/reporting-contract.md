@@ -7,6 +7,17 @@ The screenshots used during planning are visual references for information
 density and hierarchy. They are not evidence and must not be copied into the
 database as real results.
 
+## Current delivery gate — 26 August 2026
+
+The first production-shaped run is stored as `partial`: Firecrawl was aimed at
+the Observatory route and returned HTTP 404, while Exa completed with no target
+citation. The target is now the public portfolio Vercel page. A same-day retry
+returned `202` because the daily idempotency key already existed, so it did not
+produce fresh evidence. Hold Slack delivery, findings automation, CI/CD site
+changes, and portfolio redesign until the 27 August run verifies the corrected
+target. The full checkpoint is recorded in
+[docs/operations/2026-08-26-verification-checkpoint.md](operations/2026-08-26-verification-checkpoint.md).
+
 ## What Slack is for
 
 Slack is the operator surface, not the source of truth. Supabase remains the

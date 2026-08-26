@@ -16,15 +16,14 @@ actually queried and the returned source or answer can be inspected.
 | --- | --- |
 | `topic_key` | `seo-vs-aeo-portfolio` |
 | Question | What is the difference between SEO and AEO for a personal portfolio? |
-| Target URL | `https://www.stephenmantle.com/insights/seo-vs-aeo-portfolio` |
-| Canonical URL | `https://stephenmantle.com/insights/seo-vs-aeo-portfolio` |
+| Target URL | `https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio` |
+| Canonical URL | `https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio` |
 | Owner | Stephen Mantle |
 | Measurement status | Baseline blocked until the production page is verified as the intended answer page |
 
-The `www` URL is the expected production destination because the current
-redirect from the apex domain resolves there. The canonical URL remains the
-apex form until the portfolio deployment defines one canonical convention for
-all insight pages.
+The dedicated Vercel portfolio app is the measurement target for this project.
+The real domain is not required for this experiment and is intentionally not
+part of the current collection path.
 
 ## Fixed prompt set
 
@@ -64,6 +63,10 @@ The page is ready for a baseline when all of the following are true:
 - at least one answer-engine provider can be queried successfully;
 - each provider result has a durable run record and a normalized observation;
 - no citation win is claimed from a failed, stale, or unauditable response.
+
+The 26 August run remains a blocked baseline because Firecrawl used the old
+Observatory URL and returned HTTP 404. The same-day retry returned `202` as a
+duplicate by design. Re-evaluate these criteria with the new run on 27 August.
 
 ## Metrics
 

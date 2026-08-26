@@ -88,6 +88,20 @@ The first Exa run is deliberately capped at one fixed prompt with
 response quality. Search Console, analysis findings, Linear/Zapier/Slack, and
 approved portfolio changes remain separate slices.
 
+## Current verification hold
+
+The first production-shaped run is stored in Supabase as `partial` because its
+Firecrawl observation used the Observatory hostname instead of the public
+portfolio target and received HTTP 404. The target configuration is now the
+public portfolio Vercel page. A same-day manual retry returned `202` because
+`claim_daily_run()` correctly rejected the duplicate daily key, so no fresh
+provider call was made.
+
+The next proof point is the 27 August 2026 daily run. It must produce a new
+Supabase run and verify Firecrawl against the public page before Slack,
+findings, CI/CD, or portfolio changes proceed. See
+[the checkpoint record](operations/2026-08-26-verification-checkpoint.md).
+
 ## Current gap to the next slice
 
 The next implementation slice is not a public-site redesign. It is the

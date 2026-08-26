@@ -1,6 +1,6 @@
 # AEO LOOP
 
-The overall AEO Growth Loop project: a database-backed Observatory, research collectors, analysis agents, workflow integrations, and CI/CD that measure whether useful answer pages on [stephenmantle.com](https://www.stephenmantle.com) are discovered and cited, then turn verified evidence into human-approved site improvements.
+The overall AEO Growth Loop project: a database-backed Observatory, research collectors, analysis agents, workflow integrations, and CI/CD that measure whether useful answer pages on the public portfolio app are discovered and cited, then turn verified evidence into human-approved site improvements.
 
 ## What this repository contains and will contain
 
@@ -52,6 +52,12 @@ The database contract is live and the first application vertical slice is now pr
 
 The analysis agent, findings delivery, GitHub Actions quality gate, human-approved PR flow, and final portfolio redesign are intentionally still later phases.
 
+The current verification hold is documented in
+[docs/operations/2026-08-26-verification-checkpoint.md](docs/operations/2026-08-26-verification-checkpoint.md).
+The next fresh daily collection is scheduled for 27 August 2026. A manual
+retry on 26 August returned `202` because the daily run key already existed;
+it did not create another provider collection.
+
 No fake evidence is presented as live performance. Until a real collection run writes rows, the dashboard must show an explicit empty or not-connected state.
 
 The reporting contract for Mode B is documented in
@@ -83,4 +89,6 @@ Only server-side jobs and dashboard routes may use `SUPABASE_SERVICE_ROLE_KEY`. 
 
 ## Status
 
-Database and first collection/dashboard slice complete. Before deployment, verify environment keys, run the test/build checks, then connect this repository to its dedicated Vercel project. Do not point the cron at production until the target page and provider keys are intentionally enabled.
+Database, deployment, and first collection/dashboard slice are live. The next
+proof point is a fresh daily run against the public portfolio Vercel page. The
+portfolio site remains unchanged while this verification hold is open.
