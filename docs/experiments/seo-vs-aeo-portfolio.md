@@ -16,14 +16,14 @@ actually queried and the returned source or answer can be inspected.
 | --- | --- |
 | `topic_key` | `seo-vs-aeo-portfolio` |
 | Question | What is the difference between SEO and AEO for a personal portfolio? |
-| Target URL | `https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio` |
-| Canonical URL | `https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio` |
+| Target URL | `https://aeo-loop.vercel.app/insights/seo-vs-aeo-portfolio` |
+| Canonical URL | `https://aeo-loop.vercel.app/insights/seo-vs-aeo-portfolio` |
 | Owner | Stephen Mantle |
 | Measurement status | Baseline blocked until the production page is verified as the intended answer page |
 
-The dedicated Vercel portfolio app is the measurement target for this project.
-The real domain is not required for this experiment and is intentionally not
-part of the current collection path.
+The public AEO Loop Vercel app is the measurement target for this first slice.
+The portfolio app and real domain are not required for this experiment and are
+intentionally not part of the current collection path.
 
 ## Fixed prompt set
 
