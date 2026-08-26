@@ -1,0 +1,19 @@
+name: Dependency review
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    name: Review dependency changes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check dependency changes
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high

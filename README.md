@@ -51,8 +51,15 @@ The database contract is live and the first application vertical slice is now pr
 - a real-data overview showing the latest run, provider health, citation rate,
   cost, and evidence rows from Supabase;
 - unit tests for the topic budget and server-environment fail-closed behavior.
+- GitHub Actions quality, dependency, and CodeQL workflows for pull requests
+  and `main`.
 
-The analysis agent, findings delivery, GitHub Actions quality gate, human-approved PR flow, and final portfolio redesign are intentionally still later phases.
+The analysis agent, findings delivery, human-approved PR flow, and final
+portfolio redesign are intentionally still later phases. The GitHub Actions
+quality/security gate is now established before those phases continue.
+
+See [docs/ci-cd-security.md](docs/ci-cd-security.md) for the CI/CD flow,
+required GitHub settings, and secret boundary.
 
 The current verification hold is documented in
 [docs/operations/2026-08-26-verification-checkpoint.md](docs/operations/2026-08-26-verification-checkpoint.md).

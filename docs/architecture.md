@@ -88,6 +88,11 @@ Supabase. It exposes provider health, citation rate from observed Exa checks,
 run duration/cost, target URL, and explicit provider errors. The page performs
 no provider calls and never turns a failed observation into a zero.
 
+GitHub Actions now provides the CI boundary for this repository: lint,
+typecheck, tests, build, dependency audit, dependency review, and CodeQL run on
+pull requests and `main`. Vercel remains the CD boundary. See
+[ci-cd-security.md](ci-cd-security.md).
+
 The first Exa run is deliberately capped at one fixed prompt with
 `AEO_MAX_EXA_PROMPTS=1`. Increase that only after checking the stored cost and
 response quality. Search Console, analysis findings, Linear/Zapier/Slack, and
