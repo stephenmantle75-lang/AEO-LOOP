@@ -8,3 +8,5 @@ node_modules/
 dist/
 supabase/.branches/
 supabase/.temp/
+.vercel
+!.env.example
