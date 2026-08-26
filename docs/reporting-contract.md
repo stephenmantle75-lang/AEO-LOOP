@@ -7,6 +7,15 @@ The screenshots used during planning are visual references for information
 density and hierarchy. They are not evidence and must not be copied into the
 database as real results.
 
+## Current implementation slice
+
+`src/lib/reporting.ts` now derives the `daily-pulse.v1` shape from stored
+`runs`, `observations`, and `findings` records. The overview previews the
+derived KPI and funnel, and `/reports/[id]` provides a reproducible report
+review surface. This slice deliberately does not persist a report row or send
+Slack/Zapier messages yet. Missing comparison history, Search Console data,
+human analytics, clicks, and engagement remain explicitly unavailable.
+
 ## Current delivery gate — 26 August 2026
 
 The first production-shaped run is stored as `partial`: Firecrawl was aimed at

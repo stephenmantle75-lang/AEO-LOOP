@@ -50,19 +50,25 @@ The database contract is live and the first application vertical slice is now pr
 - idempotent daily run claims serialized by a Postgres advisory lock;
 - a real-data overview showing the latest run, provider health, citation rate,
   cost, and evidence rows from Supabase;
+- a derived `daily-pulse.v1` report preview and `/reports/[id]` route that
+  rebuilds KPI and funnel state from a stored run without recalling providers;
 - unit tests for the topic budget and server-environment fail-closed behavior.
 - GitHub Actions quality, dependency, and CodeQL workflows for pull requests
   and `main`.
 
 The analysis agent, findings delivery, human-approved PR flow, and final
-portfolio redesign are intentionally still later phases. The GitHub Actions
-quality/security gate is now established before those phases continue.
+portfolio redesign are intentionally still later phases. The report route is
+currently a derived review artifact; Slack/Zapier delivery, Search Console,
+human analytics, report persistence, and the public/private Observatory access
+decision remain deferred.
 
 See [docs/ci-cd-security.md](docs/ci-cd-security.md) for the CI/CD flow,
 required GitHub settings, and secret boundary.
 
 The current verification hold is documented in
-[docs/operations/2026-08-26-verification-checkpoint.md](docs/operations/2026-08-26-verification-checkpoint.md).
+[docs/operations/2026-08-26-verification-checkpoint.md](docs/operations/2026-08-26-verification-checkpoint.md),
+with the next phase audit in
+[docs/operations/2026-08-27-phase-progress.md](docs/operations/2026-08-27-phase-progress.md).
 The next fresh daily collection is scheduled for 27 August 2026. A manual
 retry on 26 August returned `202` because the daily run key already existed;
 it did not create another provider collection.
