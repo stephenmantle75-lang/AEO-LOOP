@@ -1,7 +1,7 @@
-import { FlatCompat } from "@eslint/eslintrc";
+import { defineConfig, globalIgnores } from "eslint/config";
+import nextVitals from "eslint-config-next/core-web-vitals";
 
-const compat = new FlatCompat({ baseDirectory: import.meta.dirname });
-
-const config = [...compat.extends("next/core-web-vitals"), { ignores: [".next/**", "node_modules/**"] }];
-
-export default config;
+export default defineConfig([
+  ...nextVitals,
+  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts", "node_modules/**"]),
+]);
