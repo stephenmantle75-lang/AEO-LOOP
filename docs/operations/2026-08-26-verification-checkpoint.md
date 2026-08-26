@@ -32,7 +32,9 @@ valid baseline result.
 
 ## Delivery state
 
-Slack, Linear automation, findings generation, CI/CD changes, and portfolio
-redesign remain paused until this fresh collection is verified. Supabase is the
-source of truth; the Observatory is the review surface; the portfolio remains
-the public target.
+The dashboard review surface has been extended locally and passes lint,
+typecheck, tests, and production build. The change is ready to follow the
+repository CI/CD path after review. Slack, Linear automation, findings
+generation, and portfolio redesign remain paused until this fresh collection is
+verified. Supabase is the source of truth; the Observatory is the review
+surface; the portfolio remains the public target.

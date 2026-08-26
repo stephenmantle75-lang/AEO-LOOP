@@ -83,6 +83,11 @@ Vercel Cron (protected)
   → Observatory reads the real records
 ```
 
+The Observatory overview now reads the latest run and its observation rows from
+Supabase. It exposes provider health, citation rate from observed Exa checks,
+run duration/cost, target URL, and explicit provider errors. The page performs
+no provider calls and never turns a failed observation into a zero.
+
 The first Exa run is deliberately capped at one fixed prompt with
 `AEO_MAX_EXA_PROMPTS=1`. Increase that only after checking the stored cost and
 response quality. Search Console, analysis findings, Linear/Zapier/Slack, and

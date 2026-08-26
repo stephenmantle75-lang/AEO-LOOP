@@ -48,6 +48,8 @@ The database contract is live and the first application vertical slice is now pr
 - a protected daily cron route at `/api/cron/daily-observation`;
 - one-topic Firecrawl page-integrity and bounded Exa citation collection;
 - idempotent daily run claims serialized by a Postgres advisory lock;
+- a real-data overview showing the latest run, provider health, citation rate,
+  cost, and evidence rows from Supabase;
 - unit tests for the topic budget and server-environment fail-closed behavior.
 
 The analysis agent, findings delivery, GitHub Actions quality gate, human-approved PR flow, and final portfolio redesign are intentionally still later phases.
