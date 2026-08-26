@@ -1,11 +1,10 @@
 import { runDailyObservation } from "@/lib/collection";
-import { getServerEnv } from "@/lib/env";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  const secret = getServerEnv().cronSecret;
+  const secret = process.env.CRON_SECRET;
   const authorization = request.headers.get("authorization");
   if (!secret || authorization !== `Bearer ${secret}`) {
     return Response.json({ error: { code: "UNAUTHORIZED", message: "Cron authorization required" } }, { status: 401 });
