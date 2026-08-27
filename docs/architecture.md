@@ -93,9 +93,11 @@ run, observation, and finding rows. The overview previews its KPI and funnel;
 `/reports/[id]` can reproduce the report from a stored run without calling a
 provider again. `/findings` lists persisted findings and shows deterministic,
 review-only draft candidates from the latest stored run, each linked to the
-observation IDs that caused it. Clicks, engagement, comparison deltas, and
-delivery are shown as unavailable until their adapters and historical
-comparison windows exist.
+observation IDs that caused it. `/experiments` defines the control/variant and
+retest contract, `/integrations` makes connector readiness and boundaries
+visible, and `/architecture` provides the five-layer system map. Clicks,
+engagement, comparison deltas, delivery, and model-backed analysis are shown as
+unavailable until their adapters and approval gates exist.
 
 GitHub Actions now provides the CI boundary for this repository: lint,
 typecheck, tests, build, dependency audit, dependency review, and CodeQL run on

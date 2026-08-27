@@ -16,7 +16,9 @@ Observatory boundary work.
   health, explicit failed/partial states, and a derived `daily-pulse.v1`
   report preview/detail route. The findings review surface is now present and
   reads persisted findings plus draft-only recommendations from the latest
-  stored run.
+  stored run. The remaining navigation now has honest review surfaces for
+  experiment design, integration health, and the five-layer architecture map;
+  these pages do not invent experiment or delivery records.
 - Phase 4 first slice: a deterministic evidence-to-finding contract now turns
   stored Firecrawl/Exa observations into review-only technical or citation-gap
   drafts. Drafts retain the exact observation IDs that caused them and cannot
@@ -30,8 +32,10 @@ Observatory boundary work.
 - Earlier local checkpoint commits documented response headers and the
   reproducible daily-pulse report. That checkpoint is superseded by the
   production `main` deployment at `53b903f`.
-- The current findings/reporting implementation is local and unpushed until
-  Stephen explicitly approves the next GitHub PR/push.
+- `e9c97e8` adds the evidence-backed Findings review surface and deterministic
+  draft analyzer. It is pushed to the feature branch in draft PR #16.
+- The follow-up dashboard-surface slice is locally validated and committed
+  separately; it is not production and must remain behind the PR review gate.
 
 ## Deferred intentionally
 
@@ -43,6 +47,10 @@ Observatory boundary work.
 - Model-backed analysis-agent findings and experiment orchestration. The
   current deterministic draft analyzer is only the contract and review slice.
 - Portfolio redesign and public case-study proof.
+
+The experiment, integration, and architecture pages are explanatory control
+plane surfaces only. They do not imply that Search Console, Slack, Zapier, or
+model-backed analysis is active.
 
 ## Manual gates remaining
 

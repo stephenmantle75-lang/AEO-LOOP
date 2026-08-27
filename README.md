@@ -54,6 +54,9 @@ The database contract is live and the first application vertical slice is now pr
   rebuilds KPI and funnel state from a stored run without recalling providers;
 - a `/findings` review surface that lists persisted findings and derives
   evidence-linked, draft-only recommendations from the latest stored run;
+- `/experiments`, `/integrations`, and `/architecture` review surfaces that
+  explain the control/variant contract, current connector boundaries, and the
+  Sync → Sense → Decide → Act → Report system map;
 - unit tests for the topic budget and server-environment fail-closed behavior.
 - GitHub Actions quality, dependency, and CodeQL workflows for pull requests
   and `main`.
@@ -68,13 +71,12 @@ deferred.
 See [docs/ci-cd-security.md](docs/ci-cd-security.md) for the CI/CD flow,
 required GitHub settings, and secret boundary.
 
-The current verification hold is documented in
-[docs/operations/2026-08-26-verification-checkpoint.md](docs/operations/2026-08-26-verification-checkpoint.md),
-with the next phase audit in
-[docs/operations/2026-08-27-phase-progress.md](docs/operations/2026-08-27-phase-progress.md).
-The next fresh daily collection is scheduled for 27 August 2026. A manual
-retry on 26 August returned `202` because the daily run key already existed;
-it did not create another provider collection.
+The verification checkpoint and current phase audit are documented in
+[docs/operations/2026-08-26-verification-checkpoint.md](docs/operations/2026-08-26-verification-checkpoint.md)
+and [docs/operations/2026-08-27-phase-progress.md](docs/operations/2026-08-27-phase-progress.md).
+The corrected public portfolio target produced a successful 27 August run;
+Firecrawl returned an inspectable page and Exa returned external results, but
+the target was not cited. That is the real baseline, not a citation win.
 
 No fake evidence is presented as live performance. Until a real collection run writes rows, the dashboard must show an explicit empty or not-connected state.
 

@@ -39,10 +39,12 @@ export function ObservatoryShell({ active = "overview", findingCount = 0, childr
   </div>;
 }
 
-export function PageHeader({ eyebrow, title, description, connected = true, children }: { eyebrow: string; title: string; description: string; connected?: boolean; children?: React.ReactNode }) {
+export function PageHeader({ eyebrow, title, description, connected = true, statusTone, statusText, children }: { eyebrow: string; title: string; description: string; connected?: boolean; statusTone?: "connected" | "disconnected" | "neutral"; statusText?: string; children?: React.ReactNode }) {
+  const tone = statusTone ?? (connected ? "connected" : "disconnected");
+  const label = statusText ?? (connected ? "● Database connected" : "○ Setup required");
   return <div className="topbar page-header">
     <div><div className="eyebrow">{eyebrow}</div><h1>{title}</h1><p className="subhead">{description}</p></div>
-    <div className="page-actions"><span className={`status-pill ${connected ? "connected" : "disconnected"}`}>{connected ? "● Database connected" : "○ Setup required"}</span>{children}</div>
+    <div className="page-actions"><span className={`status-pill ${tone}`}>{label}</span>{children}</div>
   </div>;
 }
 
