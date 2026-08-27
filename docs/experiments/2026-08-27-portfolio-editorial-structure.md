@@ -60,13 +60,29 @@ Observatory is the evidence surface that records what providers returned. A
 page change becomes measurable only after the approved portfolio deployment is
 updated and the same topic is collected again.
 
+## Diagram template and public-data boundary
+
+The portfolio now uses a reusable local template at
+`docs/editorial-diagram-template.md`. It defines three conceptual patterns:
+
+- an argument map for two routes that converge on a shared reader outcome;
+- a loop map for repeatable improvement around a human review point;
+- a handoff map for ownership moving between systems or teams.
+
+These diagrams are explanations, not evidence reports. The public pages do not
+render live citation rates, provider payloads, database rows, run history,
+traffic, costs, errors, or current performance claims. Those remain private to
+the Observatory. The surrounding prose and source links can explain the
+concepts without implying that a diagram is a measured result.
+
 ## Validation and deferred work
 
 - Local portfolio production build passes with `pnpm build`.
 - `git diff --check` passes.
 - Local browser checks confirmed all eight portfolio routes render without a
   404 or application error, and each insight page contains one article, one
-  diagram, and one outline.
+  diagram, and one outline. The three insight diagrams are now distinct
+  argument, loop, and handoff maps.
 - No citation uplift is claimed from this local change.
 - Push, merge, production deployment, and the next provider measurement remain
   deferred until Stephen reviews and approves the final release.
