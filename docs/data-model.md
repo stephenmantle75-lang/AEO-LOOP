@@ -4,7 +4,11 @@
 
 Supabase is the private system of record for the AEO growth loop. It stores what the collectors actually observed, what the analysis agent inferred, and which recommendation was approved for action. The public portfolio site does not expose this evidence directly.
 
-This is the v1 foundation, not the complete final schema. The plan lists additional domain tables for crawl runs, research batches, citations, metrics, experiments, deployments, and audit events. Those should be introduced as working vertical slices need them, rather than created as empty placeholders.
+This is the v1 foundation, not the complete final schema. The reporting slice
+now adds `reports`, `report_outbox`, and `delivery_events` because delivery
+needs a durable, idempotent contract. Other domain tables for research
+batches, metrics, experiments, deployments, and audit events should still be
+introduced only as working vertical slices need them.
 
 Project: `AEO LOOP` in `mants org`
 Region: `eu-west-1`
@@ -63,9 +67,32 @@ The recommendation layer. Each finding points to the run that produced it and re
 - `linear_issue_*`: external work tracking references.
 - `slack_delivery_status`: notification delivery state.
 
+### `reports`
+
+One sanitized, versioned report contract derived from a stored run. A report is
+reproducible from its `run_id` and has a unique `event_id` so retries do not
+create a second logical report. The JSON payload is the `daily-pulse.v1`
+contract; raw provider payloads and visitor-level analytics are excluded.
+
+### `report_outbox`
+
+The durable handoff between report creation and external delivery. It records
+the queued payload, status, attempt count, lock time, and last error. It is not a
+cron scheduler and does not decide what the report means.
+
+### `delivery_events`
+
+One idempotent delivery record per report/channel pair (`slack`, `linear`, or
+`zapier`). It stores external IDs and response metadata so a retry can be
+audited without duplicating a message or issue.
+
 ## Access boundary
 
-All three tables have Row Level Security enabled. Anonymous and authenticated table access is revoked. The Observatory server uses the Supabase service role in a server-only environment; that key must never be placed in `NEXT_PUBLIC_*` variables or browser code.
+All tables have Row Level Security enabled. Anonymous and authenticated table
+access is revoked. The Observatory server uses the Supabase service role in a
+server-only environment; that key must never be placed in `NEXT_PUBLIC_*`
+variables or browser code. The reporting migration is staged locally and is not
+applied to production yet.
 
 ## Provenance rules
 

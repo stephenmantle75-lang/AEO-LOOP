@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildDailyPulseReport } from "../src/lib/reporting";
+import { toReportPayload } from "../src/lib/reporting-persistence";
 import { buildDraftFindings } from "../src/lib/analysis";
 import type { FindingRow, ObservationRow, RunRow } from "../src/lib/observatory";
 
@@ -95,6 +96,27 @@ describe("daily pulse report", () => {
     expect(report.funnel.biggestLeak).toMatchObject({ from: "prompt_checks", to: "cited", status: "not_measurable" });
     expect(report.links.report).toBe("https://aeo-loop.vercel.app/reports/run-1");
     expect(JSON.stringify(report)).not.toContain("provider detail");
+  });
+
+  it("keeps the persistence payload inside the versioned report contract", () => {
+    const report = buildDailyPulseReport({ run, observations: [observation({})], findings: [] });
+    const payload = toReportPayload(report);
+
+    expect(payload).toEqual(report);
+    expect(Object.keys(payload).sort()).toEqual([
+      "actions",
+      "eventId",
+      "funnel",
+      "health",
+      "insights",
+      "kpis",
+      "links",
+      "providerHealth",
+      "reportType",
+      "runId",
+      "schemaVersion",
+      "window",
+    ].sort());
   });
 });
 

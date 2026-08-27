@@ -13,10 +13,11 @@ database as real results.
 `runs`, `observations`, and `findings` records. The overview previews the
 derived KPI and funnel, `/reports/[id]` provides a reproducible report review
 surface, and `/findings` provides a database-backed persisted-finding list plus
-draft-only recommendations from the latest run. This slice deliberately does
-not persist a report row, persist draft findings, or send Slack/Zapier messages
-yet. Missing comparison history, Search Console data, human analytics, clicks,
-and engagement remain explicitly unavailable.
+draft-only recommendations from the latest run. A local reporting migration
+and typed helpers now define `reports → report_outbox → delivery_events`, but
+they are not wired into the cron close path or applied to production yet.
+Missing comparison history, Search Console data, human analytics, clicks, and
+engagement remain explicitly unavailable.
 
 ## Current delivery gate — 27 August 2026
 
@@ -212,6 +213,13 @@ must not calculate KPIs, own the schedule, or become the evidence database.
 The direct Slack destination is the existing `#aeo-growth-loop` channel once
 the connection and destination are confirmed. Do not send mass mentions by
 default.
+
+The staged migration is
+`supabase/migrations/20260827103000_reporting_delivery_contract.sql`. Before
+it is applied, the operator must review retention, channel approval, and retry
+behaviour. The application must then persist the sanitized report only after a
+run closes, enqueue one outbox event by `event_id`, and use
+`(event_id, channel)` as the delivery idempotency key.
 
 ## Acceptance checklist
 
