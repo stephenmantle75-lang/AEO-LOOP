@@ -42,6 +42,8 @@ Observatory boundary work.
 
 Both commits are local only. No push or deployment was performed in this
 checkpoint.
+- The current findings/reporting implementation is local and unpushed until
+  Stephen explicitly approves the next GitHub PR/push.
 
 ## Deferred intentionally
 
