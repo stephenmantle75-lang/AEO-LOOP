@@ -237,6 +237,24 @@ export async function getFindings(limit = 100): Promise<ObservatoryResult<Findin
   return configuredResult(client, (data ?? []) as FindingRow[]);
 }
 
+export async function getFindingDetail(id: string): Promise<ObservatoryResult<{ finding: FindingRow | null; run: RunRow | null; observations: ObservationRow[] }>> {
+  const client = dashboardClient();
+  const empty = { finding: null, run: null, observations: [] };
+  if (!client) return configuredResult(client, empty);
+
+  const findingResult = await client.from("findings").select(findingSelect).eq("id", id).maybeSingle();
+  if (findingResult.error) throw new Error(`Finding could not be loaded from Supabase: ${findingResult.error.message}`);
+  const finding = (findingResult.data as FindingRow | null) ?? null;
+  if (!finding) return configuredResult(client, empty);
+
+  const runResult = await getRunDetail(finding.run_id);
+  return configuredResult(client, {
+    finding,
+    run: runResult.data.run,
+    observations: runResult.data.observations.filter((observation) => finding.evidence_ids.includes(observation.id)),
+  });
+}
+
 export async function getOverviewData(): Promise<ObservatoryResult<{ runs: RunRow[]; findings: FindingRow[]; observationCount: number; latestObservations: ObservationRow[] }>> {
   const client = dashboardClient();
   const empty = { runs: [], findings: [], observationCount: 0, latestObservations: [] };

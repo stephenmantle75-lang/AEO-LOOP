@@ -29,14 +29,6 @@ engagement remain explicitly unavailable.
 
 ## Current delivery gate — 27 August 2026
 
-The first production-shaped run was stored as `partial`: Firecrawl was aimed at
-derived KPI and funnel, and `/reports/[id]` provides a reproducible report
-review surface. This slice deliberately does not persist a report row or send
-Slack/Zapier messages yet. Missing comparison history, Search Console data,
-human analytics, clicks, and engagement remain explicitly unavailable.
-
-## Current delivery gate — 26 August 2026
-
 The first production-shaped run is stored as `partial`: Firecrawl was aimed at
 the Observatory route and returned HTTP 404, while Exa completed with no target
 citation. The corrected public portfolio target has since produced a successful

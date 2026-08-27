@@ -54,6 +54,8 @@ The database contract is live and the first application vertical slice is now pr
   rebuilds KPI and funnel state from a stored run without recalling providers;
 - a `/findings` review surface that lists persisted findings and derives
   evidence-linked, draft-only recommendations from the latest stored run;
+- a `/findings/[id]` detail surface that follows one persisted finding back to
+  its exact Supabase evidence rows and source run;
 - `/experiments`, `/integrations`, and `/architecture` review surfaces that
   explain the control/variant contract, current connector boundaries, and the
   Sync → Sense → Decide → Act → Report system map;
@@ -67,11 +69,6 @@ The report route is currently a derived review artifact, and draft findings are
 review-only; Slack/Zapier delivery, Search Console, human analytics, report
 persistence, and the public/private Observatory access decision remain
 deferred.
-The analysis agent, findings delivery, human-approved PR flow, and final
-portfolio redesign are intentionally still later phases. The report route is
-currently a derived review artifact; Slack/Zapier delivery, Search Console,
-human analytics, report persistence, and the public/private Observatory access
-decision remain deferred.
 
 See [docs/ci-cd-security.md](docs/ci-cd-security.md) for the CI/CD flow,
 required GitHub settings, and secret boundary.
@@ -86,7 +83,7 @@ The current verification hold is documented in
 [docs/operations/2026-08-26-verification-checkpoint.md](docs/operations/2026-08-26-verification-checkpoint.md),
 with the next phase audit in
 [docs/operations/2026-08-27-phase-progress.md](docs/operations/2026-08-27-phase-progress.md).
-The next fresh daily collection is scheduled for 27 August 2026. A manual
+The next fresh daily collection is the next scheduled daily run. A manual
 retry on 26 August returned `202` because the daily run key already existed;
 it did not create another provider collection.
 
