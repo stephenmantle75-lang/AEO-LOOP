@@ -46,6 +46,42 @@ export type DailyPulseReport = {
   links: { dashboard: string; run: string; report: string };
 };
 
+export type TopicRunSnapshot = {
+  runId: string;
+  observedAt: string | null;
+  observedChecks: number;
+  citedChecks: number;
+  citationRate: number | null;
+  failedObservations: number;
+};
+
+export function buildTopicRunSnapshots(observations: ObservationRow[]): TopicRunSnapshot[] {
+  const byRun = new Map<string, ObservationRow[]>();
+  for (const observation of observations) {
+    const rows = byRun.get(observation.run_id) ?? [];
+    rows.push(observation);
+    byRun.set(observation.run_id, rows);
+  }
+
+  return [...byRun.entries()]
+    .map(([runId, rows]) => {
+      const checks = rows.filter(
+        (observation) => observation.provider === "exa" && observation.observation_type === "citation_check" && observation.status === "observed",
+      );
+      const citedChecks = checks.filter((observation) => observation.citation_found).length;
+      const latest = [...rows].sort((a, b) => b.observed_at.localeCompare(a.observed_at))[0];
+      return {
+        runId,
+        observedAt: latest?.observed_at ?? null,
+        observedChecks: checks.length,
+        citedChecks,
+        citationRate: checks.length ? citedChecks / checks.length : null,
+        failedObservations: rows.filter((observation) => observation.status === "failed").length,
+      };
+    })
+    .sort((a, b) => (b.observedAt ?? "").localeCompare(a.observedAt ?? ""));
+}
+
 function sevenDaysBefore(value: string): string {
   const date = new Date(value);
   date.setUTCDate(date.getUTCDate() - 7);

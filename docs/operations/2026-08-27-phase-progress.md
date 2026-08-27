@@ -23,6 +23,9 @@ Observatory boundary work.
   `/findings/[id]`, where a reviewer can inspect the finding brief, source run,
   and exact evidence rows that caused it. The route is read-only and has no
   approval, delivery, or deployment side effect.
+- Measurement refinement: topic detail now groups real observations by run and
+  preserves citation denominators, rates, failures, and run links for future
+  control-versus-variant comparison. It does not claim causality or lift.
 - Phase 4 first slice: a deterministic evidence-to-finding contract now turns
   stored Firecrawl/Exa observations into review-only technical or citation-gap
   drafts. Drafts retain the exact observation IDs that caused them and cannot

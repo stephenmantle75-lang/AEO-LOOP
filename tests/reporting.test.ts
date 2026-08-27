@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildDailyPulseReport } from "../src/lib/reporting";
+import { buildDailyPulseReport, buildTopicRunSnapshots } from "../src/lib/reporting";
 import { toReportPayload } from "../src/lib/reporting-persistence";
 import { buildDraftFindings } from "../src/lib/analysis";
 import type { FindingRow, ObservationRow, RunRow } from "../src/lib/observatory";
@@ -116,6 +116,21 @@ describe("daily pulse report", () => {
       "schemaVersion",
       "window",
     ].sort());
+  });
+});
+
+describe("topic run history", () => {
+  it("groups observations by run and preserves citation denominators", () => {
+    const snapshots = buildTopicRunSnapshots([
+      observation({ run_id: "older", observed_at: "2026-08-26T08:00:00.000Z", citation_found: true }),
+      observation({ run_id: "older", observed_at: "2026-08-26T08:00:01.000Z", id: "older-2" }),
+      observation({ run_id: "newer", observed_at: "2026-08-27T08:00:00.000Z", citation_found: false }),
+    ]);
+
+    expect(snapshots).toEqual([
+      expect.objectContaining({ runId: "newer", observedChecks: 1, citedChecks: 0, citationRate: 0 }),
+      expect.objectContaining({ runId: "older", observedChecks: 2, citedChecks: 1, citationRate: 0.5 }),
+    ]);
   });
 });
 
