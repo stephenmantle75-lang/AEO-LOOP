@@ -60,7 +60,6 @@ The experiment, integration, and architecture pages are explanatory control
 plane surfaces only. They do not imply that Search Console, Slack, Zapier, or
 model-backed analysis is active.
 
-
 ## Manual gates remaining
 
 1. Review the next fresh daily run in Vercel logs and Supabase. Confirm a new
