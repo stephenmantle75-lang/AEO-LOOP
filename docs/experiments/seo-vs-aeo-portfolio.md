@@ -10,6 +10,10 @@ This is an evidence experiment, not a claim that the page is already winning
 citations. A provider result is recorded as evidence only when the provider was
 actually queried and the returned source or answer can be inspected.
 
+The first proposed content variant is recorded in
+[2026-08-27-seo-vs-aeo-variant-a.md](2026-08-27-seo-vs-aeo-variant-a.md). The
+current page remains the control until that variant is approved and deployed.
+
 ## Topic contract
 
 | Field | Value |
