@@ -1,4 +1,4 @@
-# AEO LOOP phase progress — 27 August 2026
+# AEO LOOP phase progress — 28 August 2026 local checkpoint
 
 This is the current implementation checkpoint after deferring the public/private
 Observatory boundary work.
@@ -19,6 +19,10 @@ Observatory boundary work.
   stored run. The remaining navigation now has honest review surfaces for
   experiment design, integration health, and the five-layer architecture map;
   these pages do not invent experiment or delivery records.
+- Phase 3 review refinement: persisted findings are now openable at
+  `/findings/[id]`, where a reviewer can inspect the finding brief, source run,
+  and exact evidence rows that caused it. The route is read-only and has no
+  approval, delivery, or deployment side effect.
 - Phase 4 first slice: a deterministic evidence-to-finding contract now turns
   stored Firecrawl/Exa observations into review-only technical or citation-gap
   drafts. Drafts retain the exact observation IDs that caused them and cannot
@@ -27,23 +31,15 @@ Observatory boundary work.
   Dependabot configuration, protected-main workflow, Vercel Git deployment,
   and local response-header hardening.
 
-## Current local commits
+## Current local checkpoint
 
-- Earlier local checkpoint commits documented response headers and the
-  reproducible daily-pulse report. That checkpoint is superseded by the
-  production `main` deployment at `53b903f`.
-- `e9c97e8` adds the evidence-backed Findings review surface and deterministic
-  draft analyzer. It is pushed to the feature branch in draft PR #16.
-- The follow-up dashboard-surface slice is locally validated and committed
-  separately; it is not production and must remain behind the PR review gate.
-- `2cf3865` — baseline response headers with report-only CSP.
-- `8c7136f` — reproducible daily-pulse report builder, route, overview preview,
-  and tests.
-
-Both commits are local only. No push or deployment was performed in this
-checkpoint.
-- The current findings/reporting implementation is local and unpushed until
-  Stephen explicitly approves the next GitHub PR/push.
+- The feature branch has been reconciled with the latest `origin/main`.
+- Main already contains the production Findings/reporting foundation; this
+  local checkpoint adds the openable finding detail surface and its read-only
+  evidence trace.
+- The local branch contains documentation and experiment records that are not
+  in production. No push, merge, or deployment was performed in this
+  checkpoint.
 
 ## Deferred intentionally
 

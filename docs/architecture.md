@@ -99,6 +99,10 @@ visible, and `/architecture` provides the five-layer system map. Clicks,
 engagement, comparison deltas, delivery, and model-backed analysis are shown as
 unavailable until their adapters and approval gates exist.
 
+Persisted findings are openable at `/findings/[id]`. That read-only detail view
+joins one finding to its source run and exact evidence IDs so a human can
+review the basis for a recommendation before any approval or delivery step.
+
 GitHub Actions now provides the CI boundary for this repository: lint,
 typecheck, tests, build, dependency audit, dependency review, and CodeQL run on
 pull requests and `main`. Vercel remains the CD boundary. See
