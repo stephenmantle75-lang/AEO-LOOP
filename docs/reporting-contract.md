@@ -13,9 +13,17 @@ database as real results.
 `runs`, `observations`, and `findings` records. The overview previews the
 derived KPI and funnel, `/reports/[id]` provides a reproducible report review
 surface, and `/findings` provides a database-backed persisted-finding list plus
-draft-only recommendations from the latest run. A local reporting migration
-and typed helpers now define `reports → report_outbox → delivery_events`, but
-they are not wired into the cron close path or applied to production yet.
+draft-only recommendations from the latest run. The reporting migration is now
+applied to production, and typed helpers define
+`reports → report_outbox → delivery_events`.
+
+The cron close path has a disabled-by-default switch,
+`AEO_REPORT_PERSISTENCE_ENABLED=true`. When enabled, a completed observation
+run is reloaded from Supabase, converted into the sanitized `daily-pulse.v1`
+contract, and written to `reports` with a matching queued row in
+`report_outbox`. A report persistence error does not rewrite a successfully
+completed observation run as failed; the cron response returns
+`reportStatus: "failed"` so the operational distinction remains visible.
 Missing comparison history, Search Console data, human analytics, clicks, and
 engagement remain explicitly unavailable.
 

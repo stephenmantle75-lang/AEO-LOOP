@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DailyPulseReport } from "./reporting";
+import { buildDailyPulseReport } from "./reporting";
+import type { FindingRow, ObservationRow, RunRow } from "./observatory";
 
 export type ReportRow = {
   id: string;
@@ -29,6 +31,10 @@ export type ReportOutboxRow = {
 
 export type DeliveryChannel = "slack" | "linear" | "zapier";
 
+const runSelect = "id, run_key, run_type, status, started_at, created_at, completed_at, duration_ms, cost_usd, sources, agent_version, metadata, error_message";
+const observationSelect = "id, run_id, topic_key, provider, observation_type, status, question, target_url, answer_text, mentioned, citation_found, citation_urls, citations, metrics, source_url, confidence, error_message, observed_at, created_at";
+const findingSelect = "id, run_id, topic_key, kind, title, summary, recommendation, priority, status, evidence_ids, expected_impact, confidence, linear_issue_url, slack_delivery_status, created_at";
+
 /** Return only the versioned, sanitized report contract for persistence. */
 export function toReportPayload(report: DailyPulseReport): DailyPulseReport {
   return {
@@ -48,6 +54,33 @@ export function toReportPayload(report: DailyPulseReport): DailyPulseReport {
     actions: report.actions.map((action) => ({ ...action })),
     links: { ...report.links },
   };
+}
+
+async function loadReportInputs(client: SupabaseClient, runId: string): Promise<{ run: RunRow; observations: ObservationRow[]; findings: FindingRow[] }> {
+  const [runResult, observationsResult, findingsResult] = await Promise.all([
+    client.from("runs").select(runSelect).eq("id", runId).single(),
+    client.from("observations").select(observationSelect).eq("run_id", runId).order("created_at", { ascending: true }),
+    client.from("findings").select(findingSelect).eq("run_id", runId).order("created_at", { ascending: true }),
+  ]);
+
+  if (runResult.error) throw new Error(`Report run could not be loaded: ${runResult.error.message}`);
+  if (observationsResult.error) throw new Error(`Report observations could not be loaded: ${observationsResult.error.message}`);
+  if (findingsResult.error) throw new Error(`Report findings could not be loaded: ${findingsResult.error.message}`);
+
+  return {
+    run: runResult.data as RunRow,
+    observations: (observationsResult.data ?? []) as ObservationRow[],
+    findings: (findingsResult.data ?? []) as FindingRow[],
+  };
+}
+
+/** Build and persist one report only after the collection run has been closed. */
+export async function persistClosedRunReport(client: SupabaseClient, runId: string, dashboardOrigin = ""): Promise<{ report: ReportRow; outbox: ReportOutboxRow }> {
+  const inputs = await loadReportInputs(client, runId);
+  const report = buildDailyPulseReport({ ...inputs, dashboardOrigin });
+  const persisted = await persistReport(client, report);
+  const outbox = await enqueueReportDelivery(client, persisted);
+  return { report: persisted, outbox };
 }
 
 /**

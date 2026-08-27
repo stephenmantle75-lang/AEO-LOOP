@@ -3,6 +3,7 @@ import { scrapeTargetPage, searchWithExa, type PageObservation } from "./collect
 import { completeRun, insertObservation, claimDailyRun } from "./runs";
 import { promptLimit, seoVsAeoTopic } from "./topic";
 import { createServiceClient } from "./supabase";
+import { persistClosedRunReport } from "./reporting-persistence";
 
 function dateKey(): string {
   return new Date().toISOString().slice(0, 10);
@@ -37,7 +38,7 @@ function estimatedCost(result: PageObservation): number {
   return typeof total === "number" && Number.isFinite(total) && total >= 0 ? total : 0;
 }
 
-export async function runDailyObservation(): Promise<{ runId: string; status: string; observations: number; reason?: string }> {
+export async function runDailyObservation(): Promise<{ runId: string; status: string; observations: number; reportStatus?: "disabled" | "queued" | "failed"; reason?: string }> {
   const env = getServerEnv();
   if (!env.cronSecret) throw new Error("CRON_SECRET is not configured");
   const client = createServiceClient();
@@ -67,7 +68,15 @@ export async function runDailyObservation(): Promise<{ runId: string; status: st
 
     const status = failures === observations ? "failed" : failures > 0 ? "partial" : "succeeded";
     await completeRun(client, runId, status, startedAt, sources, costUsd);
-    return { runId, status, observations };
+    if (!env.reportPersistenceEnabled) return { runId, status, observations, reportStatus: "disabled" };
+
+    try {
+      await persistClosedRunReport(client, runId, process.env.NEXT_PUBLIC_DASHBOARD_ORIGIN ?? "");
+      return { runId, status, observations, reportStatus: "queued" };
+    } catch (reportError) {
+      console.error("Daily report persistence failed after run close", reportError);
+      return { runId, status, observations, reportStatus: "failed" };
+    }
   } catch (error) {
     await completeRun(client, runId, "failed", startedAt, sources, costUsd, error instanceof Error ? error.message : "Unknown collection error");
     throw error;
