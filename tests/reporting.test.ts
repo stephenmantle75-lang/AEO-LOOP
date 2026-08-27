@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildDailyPulseReport } from "../src/lib/reporting";
+import { toReportPayload } from "../src/lib/reporting-persistence";
+import { buildDraftFindings } from "../src/lib/analysis";
 import type { FindingRow, ObservationRow, RunRow } from "../src/lib/observatory";
 
 const run: RunRow = {
@@ -94,5 +96,55 @@ describe("daily pulse report", () => {
     expect(report.funnel.biggestLeak).toMatchObject({ from: "prompt_checks", to: "cited", status: "not_measurable" });
     expect(report.links.report).toBe("https://aeo-loop.vercel.app/reports/run-1");
     expect(JSON.stringify(report)).not.toContain("provider detail");
+  });
+
+  it("keeps the persistence payload inside the versioned report contract", () => {
+    const report = buildDailyPulseReport({ run, observations: [observation({})], findings: [] });
+    const payload = toReportPayload(report);
+
+    expect(payload).toEqual(report);
+    expect(Object.keys(payload).sort()).toEqual([
+      "actions",
+      "eventId",
+      "funnel",
+      "health",
+      "insights",
+      "kpis",
+      "links",
+      "providerHealth",
+      "reportType",
+      "runId",
+      "schemaVersion",
+      "window",
+    ].sort());
+  });
+});
+
+describe("draft analysis", () => {
+  it("links a citation gap back to the observed evidence without persisting it", () => {
+    const drafts = buildDraftFindings({
+      run,
+      observations: [
+        observation({ id: "uncited", citation_found: false }),
+        observation({ id: "cited", citation_found: true, mentioned: true }),
+      ],
+    });
+
+    expect(drafts).toHaveLength(1);
+    expect(drafts[0]).toMatchObject({ kind: "citation_gap", status: "draft", evidenceIds: ["uncited"] });
+    expect(drafts[0].recommendation).toContain("separately deployed answer-page variant");
+  });
+
+  it("prioritizes a target integrity failure and does not invent a citation gap", () => {
+    const drafts = buildDraftFindings({
+      run,
+      observations: [
+        observation({ id: "page-failure", provider: "firecrawl", observation_type: "page_fetch", status: "failed", error_message: "not inspectable" }),
+        observation({ id: "exa-failure", status: "failed" }),
+      ],
+    });
+
+    expect(drafts).toHaveLength(1);
+    expect(drafts[0]).toMatchObject({ kind: "technical", priority: "high", evidenceIds: ["page-failure"] });
   });
 });

@@ -91,6 +91,13 @@ no provider calls and never turns a failed observation into a zero.
 The Observatory also derives a versioned `daily-pulse.v1` report from stored
 run, observation, and finding rows. The overview previews its KPI and funnel;
 `/reports/[id]` can reproduce the report from a stored run without calling a
+provider again. `/findings` lists persisted findings and shows deterministic,
+review-only draft candidates from the latest stored run, each linked to the
+observation IDs that caused it. `/experiments` defines the control/variant and
+retest contract, `/integrations` makes connector readiness and boundaries
+visible, and `/architecture` provides the five-layer system map. Clicks,
+engagement, comparison deltas, delivery, and model-backed analysis are shown as
+unavailable until their adapters and approval gates exist.
 provider again. Clicks, engagement, comparison deltas, and delivery are shown
 as unavailable until their adapters and historical comparison windows exist.
 
@@ -122,5 +129,10 @@ findings, CI/CD, or portfolio changes proceed. See
 
 The next implementation slice is completing the measurement-to-reporting
 contract: repeated citation observations, Search Console and analytics
+adapters, persisted report payloads, KPI deltas, and delivery status. The
+deterministic draft-finding slice is now available for human review, but it is
+not yet a model-backed agent and does not persist or deliver recommendations.
+Only after that slice is trusted should the app send the first daily pulse to
+Slack.
 adapters, persisted report payloads, KPI deltas, and delivery status. Only
 after that slice is trusted should the app send the first daily pulse to Slack.
