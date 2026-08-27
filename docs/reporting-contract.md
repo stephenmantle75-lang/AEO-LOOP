@@ -11,20 +11,23 @@ database as real results.
 
 `src/lib/reporting.ts` now derives the `daily-pulse.v1` shape from stored
 `runs`, `observations`, and `findings` records. The overview previews the
-derived KPI and funnel, and `/reports/[id]` provides a reproducible report
-review surface. This slice deliberately does not persist a report row or send
-Slack/Zapier messages yet. Missing comparison history, Search Console data,
-human analytics, clicks, and engagement remain explicitly unavailable.
+derived KPI and funnel, `/reports/[id]` provides a reproducible report review
+surface, and `/findings` provides a database-backed persisted-finding list plus
+draft-only recommendations from the latest run. This slice deliberately does
+not persist a report row, persist draft findings, or send Slack/Zapier messages
+yet. Missing comparison history, Search Console data, human analytics, clicks,
+and engagement remain explicitly unavailable.
 
-## Current delivery gate — 26 August 2026
+## Current delivery gate — 27 August 2026
 
-The first production-shaped run is stored as `partial`: Firecrawl was aimed at
+The first production-shaped run was stored as `partial`: Firecrawl was aimed at
 the Observatory route and returned HTTP 404, while Exa completed with no target
-citation. The target is now the public portfolio Vercel page. A same-day retry
-returned `202` because the daily idempotency key already existed, so it did not
-produce fresh evidence. Hold Slack delivery, findings automation, CI/CD site
-changes, and portfolio redesign until the 27 August run verifies the corrected
-target. The full checkpoint is recorded in
+citation. The corrected public portfolio target has since produced a successful
+27 August run: Firecrawl returned an inspectable HTTP 200 page and Exa returned
+ten external results without citing the target. This confirms the collection
+path and establishes a content baseline; it is not a citation win. Hold Slack
+delivery and portfolio changes until the draft finding is reviewed and the
+control/variant experiment is defined. The earlier checkpoint is recorded in
 [docs/operations/2026-08-26-verification-checkpoint.md](operations/2026-08-26-verification-checkpoint.md).
 
 ## What Slack is for

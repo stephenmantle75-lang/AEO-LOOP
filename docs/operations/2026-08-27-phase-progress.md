@@ -14,19 +14,24 @@ Observatory boundary work.
   Exa collection; real records written by the production run.
 - Phase 3 foundation: database-backed overview, topic and run views, provider
   health, explicit failed/partial states, and a derived `daily-pulse.v1`
-  report preview/detail route.
+  report preview/detail route. The findings review surface is now present and
+  reads persisted findings plus draft-only recommendations from the latest
+  stored run.
+- Phase 4 first slice: a deterministic evidence-to-finding contract now turns
+  stored Firecrawl/Exa observations into review-only technical or citation-gap
+  drafts. Drafts retain the exact observation IDs that caused them and cannot
+  write to Supabase or trigger Linear, Slack, Zapier, GitHub, or Vercel.
 - Phase 5 foundation: GitHub Actions quality gate, dependency review, CodeQL,
   Dependabot configuration, protected-main workflow, Vercel Git deployment,
   and local response-header hardening.
 
 ## Current local commits
 
-- `2cf3865` — baseline response headers with report-only CSP.
-- `8c7136f` — reproducible daily-pulse report builder, route, overview preview,
-  and tests.
-
-Both commits are local only. No push or deployment was performed in this
-checkpoint.
+- Earlier local checkpoint commits documented response headers and the
+  reproducible daily-pulse report. That checkpoint is superseded by the
+  production `main` deployment at `53b903f`.
+- The current findings/reporting implementation is local and unpushed until
+  Stephen explicitly approves the next GitHub PR/push.
 
 ## Deferred intentionally
 
@@ -34,8 +39,9 @@ checkpoint.
 - Raw-provider/error/citation boundary hardening beyond the derived report.
 - Slack and Zapier delivery.
 - Search Console and privacy-conscious human analytics adapters.
-- Persisted report/outbox/delivery tables.
-- Automated analysis-agent findings and experiment orchestration.
+- Persisted report/outbox/delivery tables and Slack/Zapier activation.
+- Model-backed analysis-agent findings and experiment orchestration. The
+  current deterministic draft analyzer is only the contract and review slice.
 - Portfolio redesign and public case-study proof.
 
 ## Manual gates remaining
@@ -46,10 +52,12 @@ checkpoint.
    `supabase/migrations/`, especially `claim_daily_run`.
 3. Choose the Observatory access model: private operator dashboard or a
    deliberately sanitized public read model.
-4. Connect Search Console and analytics only when ready to measure real search
+4. Review and approve the first draft finding in the Observatory before any
+   persistence or external delivery capability is enabled.
+5. Connect Search Console and analytics only when ready to measure real search
    and human traffic; keep those signals separate from synthetic citations.
-5. Approve the first Slack/Zapier test only after a real report is trusted and
+6. Approve the first Slack/Zapier test only after a real report is trusted and
    the destination/event idempotency are confirmed.
-6. Use the protected GitHub PR path for any push, then verify the Vercel
+7. Use the protected GitHub PR path for any push, then verify the Vercel
    preview, production deployment, and follow-up observation before treating a
    site change as an experiment result.

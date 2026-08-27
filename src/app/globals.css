@@ -105,6 +105,16 @@ td small { display: block; max-width: 330px; overflow: hidden; color: var(--mute
 .citation-list a { color: var(--blue); font-size: 12px; overflow-wrap: anywhere; text-decoration: none; }
 .error-notice { color: #9b3d3d; }
 .finding-summary { color: #40516a; font-size: 13px; line-height: 1.5; margin: 8px 0 0; }
+.finding-recommendation { color: #40516a; font-size: 12px; line-height: 1.5; margin: 8px 0 0; }
+.priority-badge { border-radius: 999px; font-size: 11px; font-weight: 800; padding: 5px 9px; text-transform: capitalize; white-space: nowrap; }
+.priority-badge.medium { background: #fff4e8; color: #9b5e1f; }
+.priority-badge.high { background: #fff0f0; color: #b34040; }
+.draft-copy { border-top: 1px solid #f0f3f7; color: #40516a; font-size: 13px; line-height: 1.55; margin-top: 16px; padding-top: 14px; }
+.draft-copy p { margin: 7px 0 0; }
+.draft-copy strong { color: var(--ink); display: block; margin-top: 12px; }
+.evidence-ids { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 14px; }
+.evidence-ids .detail-label { flex-basis: 100%; }
+.evidence-ids code { background: #f5f7fa; border-radius: 5px; color: #516176; font-size: 10px; padding: 4px 6px; }
 .flow { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; align-items: center; margin-top: 16px; }
 .flow-step { border: 1px solid var(--line); border-radius: 10px; padding: 11px 10px; font-size: 11px; font-weight: 700; text-align: center; background: #fbfcfe; }
 .arrow { color: #9ca9ba; text-align: center; }

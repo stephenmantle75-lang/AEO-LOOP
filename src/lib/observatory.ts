@@ -225,6 +225,18 @@ export async function getFindingCount(): Promise<number> {
   return count ?? 0;
 }
 
+export async function getFindings(limit = 100): Promise<ObservatoryResult<FindingRow[]>> {
+  const client = dashboardClient();
+  if (!client) return configuredResult(client, []);
+  const { data, error } = await client
+    .from("findings")
+    .select(findingSelect)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(`Findings could not be loaded from Supabase: ${error.message}`);
+  return configuredResult(client, (data ?? []) as FindingRow[]);
+}
+
 export async function getOverviewData(): Promise<ObservatoryResult<{ runs: RunRow[]; findings: FindingRow[]; observationCount: number; latestObservations: ObservationRow[] }>> {
   const client = dashboardClient();
   const empty = { runs: [], findings: [], observationCount: 0, latestObservations: [] };
