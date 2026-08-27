@@ -98,6 +98,8 @@ retest contract, `/integrations` makes connector readiness and boundaries
 visible, and `/architecture` provides the five-layer system map. Clicks,
 engagement, comparison deltas, delivery, and model-backed analysis are shown as
 unavailable until their adapters and approval gates exist.
+provider again. Clicks, engagement, comparison deltas, and delivery are shown
+as unavailable until their adapters and historical comparison windows exist.
 
 GitHub Actions now provides the CI boundary for this repository: lint,
 typecheck, tests, build, dependency audit, dependency review, and CodeQL run on
@@ -132,3 +134,5 @@ deterministic draft-finding slice is now available for human review, but it is
 not yet a model-backed agent and does not persist or deliver recommendations.
 Only after that slice is trusted should the app send the first daily pulse to
 Slack.
+adapters, persisted report payloads, KPI deltas, and delivery status. Only
+after that slice is trusted should the app send the first daily pulse to Slack.

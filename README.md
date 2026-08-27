@@ -67,6 +67,11 @@ The report route is currently a derived review artifact, and draft findings are
 review-only; Slack/Zapier delivery, Search Console, human analytics, report
 persistence, and the public/private Observatory access decision remain
 deferred.
+The analysis agent, findings delivery, human-approved PR flow, and final
+portfolio redesign are intentionally still later phases. The report route is
+currently a derived review artifact; Slack/Zapier delivery, Search Console,
+human analytics, report persistence, and the public/private Observatory access
+decision remain deferred.
 
 See [docs/ci-cd-security.md](docs/ci-cd-security.md) for the CI/CD flow,
 required GitHub settings, and secret boundary.
@@ -77,6 +82,13 @@ and [docs/operations/2026-08-27-phase-progress.md](docs/operations/2026-08-27-ph
 The corrected public portfolio target produced a successful 27 August run;
 Firecrawl returned an inspectable page and Exa returned external results, but
 the target was not cited. That is the real baseline, not a citation win.
+The current verification hold is documented in
+[docs/operations/2026-08-26-verification-checkpoint.md](docs/operations/2026-08-26-verification-checkpoint.md),
+with the next phase audit in
+[docs/operations/2026-08-27-phase-progress.md](docs/operations/2026-08-27-phase-progress.md).
+The next fresh daily collection is scheduled for 27 August 2026. A manual
+retry on 26 August returned `202` because the daily run key already existed;
+it did not create another provider collection.
 
 No fake evidence is presented as live performance. Until a real collection run writes rows, the dashboard must show an explicit empty or not-connected state.
 
