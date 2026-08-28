@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildDailyPulseReport, buildTopicRunSnapshots } from "../src/lib/reporting";
 import { toReportPayload } from "../src/lib/reporting-persistence";
-import { buildDraftFindings } from "../src/lib/analysis";
+import { buildDraftAnalysis, buildDraftFindings } from "../src/lib/analysis";
 import type { FindingRow, ObservationRow, RunRow } from "../src/lib/observatory";
 
 const run: RunRow = {
@@ -160,5 +160,25 @@ describe("draft analysis", () => {
 
     expect(drafts).toHaveLength(1);
     expect(drafts[0]).toMatchObject({ kind: "technical", priority: "high", evidenceIds: ["page-failure"] });
+  });
+
+  it("emits stable provenance for a review-only analysis", () => {
+    const analysis = buildDraftAnalysis({
+      run,
+      observations: [observation({ id: "uncited" })],
+      analyzedAt: "2026-08-27T08:00:10.000Z",
+    });
+
+    expect(analysis.metadata).toEqual({
+      analysisId: "draft-analysis:run-1",
+      runId: "run-1",
+      agentVersion: "deterministic-review-v1",
+      model: null,
+      promptVersion: "evidence-to-finding.v1",
+      costUsd: 0,
+      analyzedAt: "2026-08-27T08:00:10.000Z",
+      reviewMode: "draft_only",
+    });
+    expect(analysis.findings.every((draft) => draft.evidenceIds.length > 0)).toBe(true);
   });
 });

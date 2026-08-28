@@ -30,6 +30,11 @@ Observatory boundary work.
   stored Firecrawl/Exa observations into review-only technical or citation-gap
   drafts. Drafts retain the exact observation IDs that caused them and cannot
   write to Supabase or trigger Linear, Slack, Zapier, GitHub, or Vercel.
+- Phase 4 provenance slice: the Findings surface now shows a stable draft
+  analysis ID, agent/rule version, prompt version, model state, zero model cost,
+  timestamp, and review-only boundary. This makes the current deterministic
+  analyzer inspectable without pretending that a model-backed analysis record
+  already exists.
 - Phase 5 foundation: GitHub Actions quality gate, dependency review, CodeQL,
   Dependabot configuration, protected-main workflow, Vercel Git deployment,
   and local response-header hardening.
@@ -51,8 +56,10 @@ Observatory boundary work.
 - Slack and Zapier delivery.
 - Search Console and privacy-conscious human analytics adapters.
 - Persisted report/outbox/delivery tables and Slack/Zapier activation.
-- Model-backed analysis-agent findings and experiment orchestration. The
-  current deterministic draft analyzer is only the contract and review slice.
+- Durable analysis records, model-backed analysis-agent findings, human approval,
+  and experiment orchestration. The current deterministic draft analyzer now
+  exposes versioned provenance, but it remains computed from the latest run and
+  is not persisted as its own analysis row.
 - Portfolio redesign and public case-study proof.
 
 The experiment, integration, and architecture pages are explanatory control

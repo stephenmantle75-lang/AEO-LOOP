@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { buildDraftFindings } from "@/lib/analysis";
+import { buildDraftAnalysis } from "@/lib/analysis";
 import { ConnectionNotice, ObservatoryShell, PageHeader } from "../_components/observatory-shell";
 import { formatDate, getFindingCount, getFindings, getRunDetail, getRuns, statusLabel } from "@/lib/observatory";
 
@@ -9,7 +9,8 @@ export default async function FindingsPage() {
   const [findingsResult, runsResult, findingCount] = await Promise.all([getFindings(), getRuns(1), getFindingCount()]);
   const latestRun = runsResult.data[0];
   const latestDetail = latestRun ? await getRunDetail(latestRun.id) : null;
-  const drafts = latestDetail?.data.run ? buildDraftFindings({ run: latestDetail.data.run, observations: latestDetail.data.observations }) : [];
+  const analysis = latestDetail?.data.run ? buildDraftAnalysis({ run: latestDetail.data.run, observations: latestDetail.data.observations }) : null;
+  const drafts = analysis?.findings ?? [];
   const connected = findingsResult.connected && runsResult.connected && (latestDetail?.connected ?? true);
 
   return <ObservatoryShell active="findings" findingCount={findingCount}>
@@ -36,6 +37,21 @@ export default async function FindingsPage() {
     <section className="panel page-panel">
       <div className="panel-head"><span className="panel-title">Persisted findings</span><span className="panel-meta">database records · {findingsResult.data.length}</span></div>
       {findingsResult.data.length ? <div className="topic-list">{findingsResult.data.map((finding) => <article className="topic-row" key={finding.id}><div><div className="topic-name"><Link className="detail-link" href={`/findings/${finding.id}`}>{finding.title} →</Link></div><div className="topic-meta">{finding.kind} · {finding.priority} priority · {statusLabel(finding.status)} · created {formatDate(finding.created_at)}</div><p className="finding-summary">{finding.summary}</p><p className="finding-recommendation">Recommendation: {finding.recommendation}</p></div><div className="topic-score"><strong>{finding.confidence === null ? "—" : `${Math.round(finding.confidence * 100)}%`}</strong><span>confidence</span></div></article>)}</div> : <div className="empty"><strong>No persisted findings yet</strong>Draft recommendations remain separate until a future human-reviewed analysis step stores a finding.</div>}
+    </section>
+
+    <section className="panel page-panel">
+      <div className="panel-head"><span className="panel-title">Analysis provenance</span><span className="panel-meta">{analysis ? "latest draft analysis" : "no analysis"}</span></div>
+      {analysis ? <>
+        <div className="metadata-grid">
+          <div><span className="detail-label">Analysis ID</span><code>{analysis.metadata.analysisId}</code></div>
+          <div><span className="detail-label">Agent version</span><span>{analysis.metadata.agentVersion}</span></div>
+          <div><span className="detail-label">Prompt version</span><span>{analysis.metadata.promptVersion}</span></div>
+          <div><span className="detail-label">Model</span><span>None · deterministic rules</span></div>
+          <div><span className="detail-label">Provider cost</span><span>$0.000 · no model call</span></div>
+          <div><span className="detail-label">Analyzed</span><span>{formatDate(analysis.metadata.analyzedAt, true)}</span></div>
+        </div>
+        <div className="notice">This analysis is review-only. Its findings are linked to stored observation IDs, but this metadata is currently computed from the latest run rather than persisted in a dedicated analysis table. Human approval, durable analysis records, and external delivery remain deferred.</div>
+      </> : <div className="empty"><strong>No analysis provenance yet</strong>A provenance record appears after a stored observation run is available.</div>}
     </section>
 
     <section className="panel architecture"><div className="panel-title">What happens next</div><div className="flow"><div className="flow-step">Stored evidence<br /><small>Supabase rows</small></div><div className="arrow">→</div><div className="flow-step">Draft finding<br /><small>this screen</small></div><div className="arrow">→</div><div className="flow-step">Human review<br /><small>approve / reject</small></div><div className="arrow">→</div><div className="flow-step">Linear + PR<br /><small>later phase</small></div></div><div className="notice">Drafts are intentionally not written back to Supabase and cannot create Linear issues, Slack messages, portfolio changes, or deployments. That approval boundary is the next part of ANT-36.</div></section>
