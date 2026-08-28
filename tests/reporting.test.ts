@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildDailyPulseReport, buildTopicRunSnapshots } from "../src/lib/reporting";
 import { toReportPayload } from "../src/lib/reporting-persistence";
-import { buildDraftAnalysis, buildDraftFindings } from "../src/lib/analysis";
+import { buildDraftAnalysis, buildDraftFindings, toAnalysisRecordPayload } from "../src/lib/analysis";
 import type { FindingRow, ObservationRow, RunRow } from "../src/lib/observatory";
 
 const run: RunRow = {
@@ -180,5 +180,25 @@ describe("draft analysis", () => {
       reviewMode: "draft_only",
     });
     expect(analysis.findings.every((draft) => draft.evidenceIds.length > 0)).toBe(true);
+  });
+
+  it("creates a deduplicated persistence snapshot without activating writes", () => {
+    const analysis = buildDraftAnalysis({
+      run,
+      observations: [
+        observation({ id: "page-failure", provider: "firecrawl", observation_type: "page_fetch", status: "failed" }),
+        observation({ id: "uncited", citation_found: false }),
+      ],
+      analyzedAt: "2026-08-27T08:00:10.000Z",
+    });
+    const payload = toAnalysisRecordPayload(analysis);
+
+    expect(payload).toMatchObject({
+      analysisKey: "draft-analysis:run-1",
+      status: "draft",
+      reviewMode: "draft_only",
+      observationIds: ["page-failure", "uncited"],
+    });
+    expect(payload.findings.every((draft) => draft.evidenceIds.length > 0)).toBe(true);
   });
 });

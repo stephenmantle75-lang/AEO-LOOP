@@ -35,6 +35,11 @@ Observatory boundary work.
   timestamp, and review-only boundary. This makes the current deterministic
   analyzer inspectable without pretending that a model-backed analysis record
   already exists.
+- Phase 4 persistence contract: a local-only `analyses` migration and sanitized
+  payload builder now define where a future analysis snapshot will store its
+  run, version, model, prompt, cost, status, source observation IDs, and
+  evidence-linked findings. The migration is not applied and no runtime writes
+  are enabled.
 - Phase 5 foundation: GitHub Actions quality gate, dependency review, CodeQL,
   Dependabot configuration, protected-main workflow, Vercel Git deployment,
   and local response-header hardening.
@@ -57,9 +62,9 @@ Observatory boundary work.
 - Search Console and privacy-conscious human analytics adapters.
 - Persisted report/outbox/delivery tables and Slack/Zapier activation.
 - Durable analysis records, model-backed analysis-agent findings, human approval,
-  and experiment orchestration. The current deterministic draft analyzer now
-  exposes versioned provenance, but it remains computed from the latest run and
-  is not persisted as its own analysis row.
+  and experiment orchestration. The schema and payload contract now exist
+  locally, but persistence is still disabled until the migration and approval
+  policy are reviewed.
 - Portfolio redesign and public case-study proof.
 
 The experiment, integration, and architecture pages are explanatory control

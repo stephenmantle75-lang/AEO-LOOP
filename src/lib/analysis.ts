@@ -30,6 +30,13 @@ export type DraftAnalysis = {
   findings: DraftFinding[];
 };
 
+export type AnalysisRecordPayload = AnalysisMetadata & {
+  analysisKey: string;
+  status: "draft";
+  observationIds: string[];
+  findings: DraftFinding[];
+};
+
 export const DRAFT_ANALYSIS_AGENT_VERSION = "deterministic-review-v1";
 export const DRAFT_ANALYSIS_PROMPT_VERSION = "evidence-to-finding.v1";
 
@@ -119,5 +126,22 @@ export function buildDraftAnalysis({
       reviewMode: "draft_only",
     },
     findings,
+  };
+}
+
+/** Return the database-safe snapshot for a future approved persistence step. */
+export function toAnalysisRecordPayload(analysis: DraftAnalysis): AnalysisRecordPayload {
+  const observationIds = [...new Set(analysis.findings.flatMap((finding) => finding.evidenceIds))];
+
+  if (!observationIds.length && analysis.findings.length > 0) {
+    throw new Error("Analysis records with findings must retain source observation IDs");
+  }
+
+  return {
+    ...analysis.metadata,
+    analysisKey: analysis.metadata.analysisId,
+    status: "draft",
+    observationIds,
+    findings: analysis.findings.map((finding) => ({ ...finding, evidenceIds: [...finding.evidenceIds] })),
   };
 }
