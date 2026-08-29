@@ -1,18 +1,20 @@
 import { getServerEnv } from "./env";
 import { scrapeTargetPage, searchWithExa, type PageObservation } from "./collectors";
-import { completeRun, insertObservation, claimDailyRun } from "./runs";
-import { promptLimit, seoVsAeoTopic } from "./topic";
+import { completeRun, insertObservation, claimDailyRun, claimExperimentRun, type ClaimResult } from "./runs";
+import { experimentRunKey, promptLimit, seoVsAeoTopic, topicForKey, type TopicDefinition } from "./topic";
 import { createServiceClient } from "./supabase";
+import { persistClosedRunReport } from "./reporting-persistence";
 
 function dateKey(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function observationRow(runId: string, provider: string, observationType: string, question: string, targetUrl: string, result: PageObservation) {
+function observationRow(runId: string, topic: TopicDefinition, provider: string, observationType: string, question: string, result: PageObservation) {
+  const targetUrl = topic.targetUrl;
   const mentioned = result.metrics.citationFound === true || result.citationUrls.includes(targetUrl);
   return {
     run_id: runId,
-    topic_key: seoVsAeoTopic.key,
+    topic_key: topic.key,
     question,
     provider,
     observation_type: observationType,
@@ -37,29 +39,47 @@ function estimatedCost(result: PageObservation): number {
   return typeof total === "number" && Number.isFinite(total) && total >= 0 ? total : 0;
 }
 
-export async function runDailyObservation(): Promise<{ runId: string; status: string; observations: number; reason?: string }> {
+export type CollectionResult = {
+  runId: string;
+  runType: "daily_observation" | "experiment_retest";
+  topicKey: string;
+  status: string;
+  observations: number;
+  reportStatus?: "disabled" | "queued" | "failed";
+  reason?: string;
+};
+
+type CollectionConfig = {
+  topic: TopicDefinition;
+  runKey: string;
+  runType: CollectionResult["runType"];
+  claim: (client: ReturnType<typeof createServiceClient>, runKey: string, sources: string[], metadata: Record<string, unknown>) => Promise<ClaimResult>;
+};
+
+async function runTopicObservation(config: CollectionConfig): Promise<CollectionResult> {
   const env = getServerEnv();
   if (!env.cronSecret) throw new Error("CRON_SECRET is not configured");
   const client = createServiceClient();
   const startedAt = Date.now();
   const sources = ["firecrawl", "exa"];
-  const claim = await claimDailyRun(client, `daily-observation:${dateKey()}`, sources, { topicKey: seoVsAeoTopic.key, promptLimit: promptLimit(seoVsAeoTopic).length, targetUrl: seoVsAeoTopic.targetUrl });
-  if (!claim.claimed || !claim.run) return { runId: claim.run?.id ?? "", status: "not_started", observations: 0, reason: claim.reason };
+  const prompts = promptLimit(config.topic);
+  const claim = await config.claim(client, config.runKey, sources, { topicKey: config.topic.key, promptLimit: prompts.length, targetUrl: config.topic.targetUrl });
+  if (!claim.claimed || !claim.run) return { runId: claim.run?.id ?? "", runType: config.runType, topicKey: config.topic.key, status: "not_started", observations: 0, reason: claim.reason };
 
   const runId = claim.run.id;
   let observations = 0;
   let failures = 0;
   let costUsd = 0;
   try {
-    const pageResult = await scrapeTargetPage(seoVsAeoTopic.targetUrl);
-    await insertObservation(client, observationRow(runId, "firecrawl", "page_fetch", seoVsAeoTopic.question, seoVsAeoTopic.targetUrl, pageResult));
+    const pageResult = await scrapeTargetPage(config.topic.targetUrl);
+    await insertObservation(client, observationRow(runId, config.topic, "firecrawl", "page_fetch", config.topic.question, pageResult));
     observations += 1;
     failures += pageResult.status === "failed" ? 1 : 0;
     costUsd += estimatedCost(pageResult);
 
-    for (const prompt of promptLimit(seoVsAeoTopic)) {
-      const result = await searchWithExa(prompt, seoVsAeoTopic.targetUrl);
-      await insertObservation(client, observationRow(runId, "exa", "citation_check", prompt, seoVsAeoTopic.targetUrl, result));
+    for (const prompt of prompts) {
+      const result = await searchWithExa(prompt, config.topic.targetUrl);
+      await insertObservation(client, observationRow(runId, config.topic, "exa", "citation_check", prompt, result));
       observations += 1;
       failures += result.status === "failed" ? 1 : 0;
       costUsd += estimatedCost(result);
@@ -67,9 +87,38 @@ export async function runDailyObservation(): Promise<{ runId: string; status: st
 
     const status = failures === observations ? "failed" : failures > 0 ? "partial" : "succeeded";
     await completeRun(client, runId, status, startedAt, sources, costUsd);
-    return { runId, status, observations };
+    if (!env.reportPersistenceEnabled) return { runId, runType: config.runType, topicKey: config.topic.key, status, observations, reportStatus: "disabled" };
+
+    try {
+      await persistClosedRunReport(client, runId, process.env.NEXT_PUBLIC_DASHBOARD_ORIGIN ?? "");
+      return { runId, runType: config.runType, topicKey: config.topic.key, status, observations, reportStatus: "queued" };
+    } catch (reportError) {
+      console.error("Daily report persistence failed after run close", reportError);
+      return { runId, runType: config.runType, topicKey: config.topic.key, status, observations, reportStatus: "failed" };
+    }
   } catch (error) {
     await completeRun(client, runId, "failed", startedAt, sources, costUsd, error instanceof Error ? error.message : "Unknown collection error");
     throw error;
   }
+}
+
+export async function runDailyObservation(): Promise<CollectionResult> {
+  return runTopicObservation({
+    topic: seoVsAeoTopic,
+    runKey: `daily-observation:${dateKey()}`,
+    runType: "daily_observation",
+    claim: claimDailyRun,
+  });
+}
+
+export async function runExperimentObservation(topicKey: string): Promise<CollectionResult> {
+  const topic = topicForKey(topicKey);
+  if (!topic) throw new Error("topicKey must identify an approved experiment topic");
+  const startedAt = new Date().toISOString();
+  return runTopicObservation({
+    topic,
+    runKey: experimentRunKey(topic.key, startedAt, crypto.randomUUID()),
+    runType: "experiment_retest",
+    claim: claimExperimentRun,
+  });
 }

@@ -48,6 +48,26 @@ be connected to this repository with previews for pull requests and production
 deployment from `main`. GitHub Actions is CI; Vercel is CD. Neither replaces
 the other.
 
+## When a pull-request check does not start
+
+Changing the branch ruleset changes merge eligibility; it does not dispatch a
+new workflow run. A new pull-request `synchronize` event (a new commit pushed
+to the source branch) is required to create fresh CI, CodeQL, and dependency
+review runs.
+
+If a run remains queued without creating a job, or a job is cancelled after
+the configured 15-minute window, the failure is runner allocation rather than
+an application lint, test, build, or dependency result. Do not respond by
+creating duplicate runs, repeatedly closing and reopening the pull request, or
+loosening the required checks. Inspect the run and repository Actions settings,
+then escalate a repeated runner-allocation timeout to GitHub if a fresh
+legitimate push shows the same behavior.
+
+Required status-check names must match the check contexts produced by the
+workflows. For this repository they are `Quality gate`, `Review dependency
+changes`, and `Analyze JavaScript and TypeScript`; the old `CodeQL` context is
+not produced by the current workflow and must not be required.
+
 ## Secret boundary
 
 GitHub Actions receives no production provider credentials for the current

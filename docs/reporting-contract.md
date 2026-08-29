@@ -7,15 +7,36 @@ The screenshots used during planning are visual references for information
 density and hierarchy. They are not evidence and must not be copied into the
 database as real results.
 
-## Current delivery gate — 26 August 2026
+## Current implementation slice
+
+`src/lib/reporting.ts` now derives the `daily-pulse.v1` shape from stored
+`runs`, `observations`, and `findings` records. The overview previews the
+derived KPI and funnel, `/reports/[id]` provides a reproducible report review
+surface, and `/findings` provides a database-backed persisted-finding list plus
+draft-only recommendations from the latest run. The reporting migration is now
+applied to production, and typed helpers define
+`reports → report_outbox → delivery_events`.
+
+The cron close path has a disabled-by-default switch,
+`AEO_REPORT_PERSISTENCE_ENABLED=true`. When enabled, a completed observation
+run is reloaded from Supabase, converted into the sanitized `daily-pulse.v1`
+contract, and written to `reports` with a matching queued row in
+`report_outbox`. A report persistence error does not rewrite a successfully
+completed observation run as failed; the cron response returns
+`reportStatus: "failed"` so the operational distinction remains visible.
+Missing comparison history, Search Console data, human analytics, clicks, and
+engagement remain explicitly unavailable.
+
+## Current delivery gate — 27 August 2026
 
 The first production-shaped run is stored as `partial`: Firecrawl was aimed at
 the Observatory route and returned HTTP 404, while Exa completed with no target
-citation. The target is now the public portfolio Vercel page. A same-day retry
-returned `202` because the daily idempotency key already existed, so it did not
-produce fresh evidence. Hold Slack delivery, findings automation, CI/CD site
-changes, and portfolio redesign until the 27 August run verifies the corrected
-target. The full checkpoint is recorded in
+citation. The corrected public portfolio target has since produced a successful
+27 August run: Firecrawl returned an inspectable HTTP 200 page and Exa returned
+ten external results without citing the target. This confirms the collection
+path and establishes a content baseline; it is not a citation win. Hold Slack
+delivery and portfolio changes until the draft finding is reviewed and the
+control/variant experiment is defined. The earlier checkpoint is recorded in
 [docs/operations/2026-08-26-verification-checkpoint.md](operations/2026-08-26-verification-checkpoint.md).
 
 ## What Slack is for
@@ -200,6 +221,13 @@ must not calculate KPIs, own the schedule, or become the evidence database.
 The direct Slack destination is the existing `#aeo-growth-loop` channel once
 the connection and destination are confirmed. Do not send mass mentions by
 default.
+
+The staged migration is
+`supabase/migrations/20260827103000_reporting_delivery_contract.sql`. Before
+it is applied, the operator must review retention, channel approval, and retry
+behaviour. The application must then persist the sanitized report only after a
+run closes, enqueue one outbox event by `event_id`, and use
+`(event_id, channel)` as the delivery idempotency key.
 
 ## Acceptance checklist
 

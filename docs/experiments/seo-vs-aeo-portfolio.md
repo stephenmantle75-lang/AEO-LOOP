@@ -10,6 +10,10 @@ This is an evidence experiment, not a claim that the page is already winning
 citations. A provider result is recorded as evidence only when the provider was
 actually queried and the returned source or answer can be inspected.
 
+The first proposed content variant is recorded in
+[2026-08-27-seo-vs-aeo-variant-a.md](2026-08-27-seo-vs-aeo-variant-a.md). The
+current page remains the control until that variant is approved and deployed.
+
 ## Topic contract
 
 | Field | Value |
@@ -21,9 +25,9 @@ actually queried and the returned source or answer can be inspected.
 | Owner | Stephen Mantle |
 | Measurement status | Baseline blocked until the production page is verified as the intended answer page |
 
-The dedicated Vercel portfolio app is the measurement target for this project.
-The real domain is not required for this experiment and is intentionally not
-part of the current collection path.
+The public portfolio Vercel app is the measurement target for this first slice.
+The AEO Loop Observatory remains the dashboard and collection runtime; the
+portfolio app and real domain are separate concerns.
 
 ## Fixed prompt set
 
@@ -64,9 +68,11 @@ The page is ready for a baseline when all of the following are true:
 - each provider result has a durable run record and a normalized observation;
 - no citation win is claimed from a failed, stale, or unauditable response.
 
-The 26 August run remains a blocked baseline because Firecrawl used the old
-Observatory URL and returned HTTP 404. The same-day retry returned `202` as a
-duplicate by design. Re-evaluate these criteria with the new run on 27 August.
+The 26 August run remains a blocked baseline because the production
+configuration still sent Firecrawl to the old Observatory URL and Firecrawl
+returned HTTP 404. The same-day retry returned `202` as a duplicate by design.
+Re-evaluate these criteria with the next fresh daily run after the production
+`AEO_TARGET_URL` variable is corrected.
 
 ## Metrics
 

@@ -6,6 +6,7 @@ export type ServerEnv = {
   firecrawlApiKey?: string;
   exaApiKey?: string;
   cronSecret?: string;
+  reportPersistenceEnabled: boolean;
 };
 
 export function getServerEnv(): ServerEnv {
@@ -20,6 +21,7 @@ export function getServerEnv(): ServerEnv {
     firecrawlApiKey: process.env.FIRECRAWL_API_KEY,
     exaApiKey: process.env.EXA_API_KEY,
     cronSecret: process.env.CRON_SECRET,
+    reportPersistenceEnabled: process.env.AEO_REPORT_PERSISTENCE_ENABLED === "true",
   };
 }
 
