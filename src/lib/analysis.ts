@@ -14,6 +14,32 @@ export type DraftFinding = {
   status: "draft";
 };
 
+export type AnalysisMetadata = {
+  analysisId: string;
+  runId: string;
+  agentVersion: string;
+  model: string | null;
+  promptVersion: string;
+  costUsd: number;
+  analyzedAt: string;
+  reviewMode: "draft_only";
+};
+
+export type DraftAnalysis = {
+  metadata: AnalysisMetadata;
+  findings: DraftFinding[];
+};
+
+export type AnalysisRecordPayload = AnalysisMetadata & {
+  analysisKey: string;
+  status: "draft";
+  observationIds: string[];
+  findings: DraftFinding[];
+};
+
+export const DRAFT_ANALYSIS_AGENT_VERSION = "deterministic-review-v1";
+export const DRAFT_ANALYSIS_PROMPT_VERSION = "evidence-to-finding.v1";
+
 /**
  * Produces review-only findings from stored observations.
  *
@@ -63,4 +89,59 @@ export function buildDraftFindings({ run, observations }: { run: RunRow; observa
   }
 
   return drafts;
+}
+
+/**
+ * Wraps the review-only rules in the metadata shape required by ANT-36.
+ *
+ * The metadata is intentionally explicit about the current boundary: this is
+ * not a model call. Keeping a stable analysis ID and versioned rule/prompt
+ * labels makes the guarded durable snapshot and human approval step additive
+ * rather than ambiguous.
+ */
+export function buildDraftAnalysis({
+  run,
+  observations,
+  analyzedAt = run.completed_at ?? run.created_at,
+}: {
+  run: RunRow;
+  observations: ObservationRow[];
+  analyzedAt?: string;
+}): DraftAnalysis {
+  const findings = buildDraftFindings({ run, observations });
+
+  if (findings.some((finding) => finding.evidenceIds.length === 0)) {
+    throw new Error("Draft findings must retain at least one source observation");
+  }
+
+  return {
+    metadata: {
+      analysisId: `draft-analysis:${run.id}`,
+      runId: run.id,
+      agentVersion: DRAFT_ANALYSIS_AGENT_VERSION,
+      model: null,
+      promptVersion: DRAFT_ANALYSIS_PROMPT_VERSION,
+      costUsd: 0,
+      analyzedAt,
+      reviewMode: "draft_only",
+    },
+    findings,
+  };
+}
+
+/** Return the database-safe snapshot for the guarded persistence step. */
+export function toAnalysisRecordPayload(analysis: DraftAnalysis): AnalysisRecordPayload {
+  const observationIds = [...new Set(analysis.findings.flatMap((finding) => finding.evidenceIds))];
+
+  if (!observationIds.length && analysis.findings.length > 0) {
+    throw new Error("Analysis records with findings must retain source observation IDs");
+  }
+
+  return {
+    ...analysis.metadata,
+    analysisKey: analysis.metadata.analysisId,
+    status: "draft",
+    observationIds,
+    findings: analysis.findings.map((finding) => ({ ...finding, evidenceIds: [...finding.evidenceIds] })),
+  };
 }

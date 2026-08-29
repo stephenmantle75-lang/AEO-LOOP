@@ -4,6 +4,7 @@ import { completeRun, insertObservation, claimDailyRun, claimExperimentRun, type
 import { experimentRunKey, promptLimit, seoVsAeoTopic, topicForKey, type TopicDefinition } from "./topic";
 import { createServiceClient } from "./supabase";
 import { persistClosedRunReport } from "./reporting-persistence";
+import { persistClosedRunAnalysis } from "./analysis-persistence";
 
 function dateKey(): string {
   return new Date().toISOString().slice(0, 10);
@@ -46,6 +47,7 @@ export type CollectionResult = {
   status: string;
   observations: number;
   reportStatus?: "disabled" | "queued" | "failed";
+  analysisStatus?: "disabled" | "persisted" | "failed";
   reason?: string;
 };
 
@@ -87,14 +89,24 @@ async function runTopicObservation(config: CollectionConfig): Promise<Collection
 
     const status = failures === observations ? "failed" : failures > 0 ? "partial" : "succeeded";
     await completeRun(client, runId, status, startedAt, sources, costUsd);
-    if (!env.reportPersistenceEnabled) return { runId, runType: config.runType, topicKey: config.topic.key, status, observations, reportStatus: "disabled" };
+    let analysisStatus: CollectionResult["analysisStatus"] = "disabled";
+    if (env.analysisPersistenceEnabled) {
+      try {
+        await persistClosedRunAnalysis(client, runId);
+        analysisStatus = "persisted";
+      } catch (analysisError) {
+        console.error("Analysis persistence failed after run close", analysisError);
+        analysisStatus = "failed";
+      }
+    }
+    if (!env.reportPersistenceEnabled) return { runId, runType: config.runType, topicKey: config.topic.key, status, observations, analysisStatus, reportStatus: "disabled" };
 
     try {
       await persistClosedRunReport(client, runId, process.env.NEXT_PUBLIC_DASHBOARD_ORIGIN ?? "");
-      return { runId, runType: config.runType, topicKey: config.topic.key, status, observations, reportStatus: "queued" };
+      return { runId, runType: config.runType, topicKey: config.topic.key, status, observations, analysisStatus, reportStatus: "queued" };
     } catch (reportError) {
       console.error("Daily report persistence failed after run close", reportError);
-      return { runId, runType: config.runType, topicKey: config.topic.key, status, observations, reportStatus: "failed" };
+      return { runId, runType: config.runType, topicKey: config.topic.key, status, observations, analysisStatus, reportStatus: "failed" };
     }
   } catch (error) {
     await completeRun(client, runId, "failed", startedAt, sources, costUsd, error instanceof Error ? error.message : "Unknown collection error");

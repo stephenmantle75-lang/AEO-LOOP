@@ -7,6 +7,7 @@ export type ServerEnv = {
   exaApiKey?: string;
   cronSecret?: string;
   reportPersistenceEnabled: boolean;
+  analysisPersistenceEnabled: boolean;
 };
 
 export function getServerEnv(): ServerEnv {
@@ -22,6 +23,7 @@ export function getServerEnv(): ServerEnv {
     exaApiKey: process.env.EXA_API_KEY,
     cronSecret: process.env.CRON_SECRET,
     reportPersistenceEnabled: process.env.AEO_REPORT_PERSISTENCE_ENABLED === "true",
+    analysisPersistenceEnabled: process.env.AEO_ANALYSIS_PERSISTENCE_ENABLED === "true",
   };
 }
 

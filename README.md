@@ -57,6 +57,10 @@ The database contract is live and the first application vertical slice is now pr
   rebuilds KPI and funnel state from a stored run without recalling providers;
 - a `/findings` review surface that lists persisted findings and derives
   evidence-linked, draft-only recommendations from the latest stored run;
+- a guarded analysis persistence path that can store the deterministic,
+  evidence-linked draft snapshot only when `AEO_ANALYSIS_PERSISTENCE_ENABLED`
+  is explicitly enabled after the live `analyses` migration and review policy
+  are approved;
 - a `/findings/[id]` detail surface that follows one persisted finding back to
   its exact Supabase evidence rows and source run;
 - `/experiments`, `/integrations`, and `/architecture` review surfaces that
@@ -66,8 +70,11 @@ The database contract is live and the first application vertical slice is now pr
 - GitHub Actions quality, dependency, and CodeQL workflows for pull requests
   and `main`.
 
-The model-backed analysis agent, findings persistence/delivery, human-approved
-PR flow, and final portfolio redesign are intentionally still later phases.
+The model-backed analysis agent, human approval, findings delivery,
+human-approved PR flow, and final portfolio redesign are intentionally still
+later phases. The deterministic analysis persistence path is disabled by
+default and does not call a model or trigger external actions, even though its
+service-role-only `analyses` table is now present in Supabase.
 The report route is currently a derived review artifact, and draft findings are
 review-only; Slack/Zapier delivery, Search Console, human analytics, report
 persistence, and the public/private Observatory access decision remain

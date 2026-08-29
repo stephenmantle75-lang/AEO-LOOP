@@ -80,6 +80,15 @@ export type TopicSummary = {
 
 export type ObservatoryResult<T> = { connected: true; data: T } | { connected: false; data: T };
 
+export type OverviewData = {
+  runs: RunRow[];
+  findings: FindingRow[];
+  observationCount: number | null;
+  observationCountError: string | null;
+  latestObservations: ObservationRow[];
+  latestObservationsError: string | null;
+};
+
 const runSelect = "id, run_key, run_type, status, started_at, created_at, completed_at, duration_ms, cost_usd, sources, agent_version, metadata, error_message";
 const findingSelect = "id, run_id, topic_key, kind, title, summary, recommendation, priority, status, evidence_ids, expected_impact, confidence, linear_issue_url, slack_delivery_status, created_at";
 const observationSelect = "id, run_id, topic_key, provider, observation_type, status, question, target_url, answer_text, mentioned, citation_found, citation_urls, citations, metrics, source_url, confidence, error_message, observed_at, created_at";
@@ -253,9 +262,16 @@ export async function getFindingDetail(id: string): Promise<ObservatoryResult<{ 
   });
 }
 
-export async function getOverviewData(): Promise<ObservatoryResult<{ runs: RunRow[]; findings: FindingRow[]; observationCount: number; latestObservations: ObservationRow[] }>> {
+export async function getOverviewData(): Promise<ObservatoryResult<OverviewData>> {
   const client = dashboardClient();
-  const empty = { runs: [], findings: [], observationCount: 0, latestObservations: [] };
+  const empty: OverviewData = {
+    runs: [],
+    findings: [],
+    observationCount: null,
+    observationCountError: null,
+    latestObservations: [],
+    latestObservationsError: null,
+  };
   if (!client) return configuredResult(client, empty);
   const [runsResult, findingsResult, observationsResult] = await Promise.all([
     client.from("runs").select(runSelect).order("created_at", { ascending: false }).limit(8),
@@ -264,14 +280,24 @@ export async function getOverviewData(): Promise<ObservatoryResult<{ runs: RunRo
   ]);
   if (runsResult.error) throw new Error(`Runs could not be loaded from Supabase: ${runsResult.error.message}`);
   if (findingsResult.error) throw new Error(`Findings could not be loaded from Supabase: ${findingsResult.error.message}`);
-  if (observationsResult.error) throw new Error(`Observations could not be counted from Supabase: ${observationsResult.error.message}`);
   const runs = (runsResult.data ?? []) as RunRow[];
   const latestRun = runs[0];
   let latestObservations: ObservationRow[] = [];
+  let latestObservationsError: string | null = null;
   if (latestRun) {
     const latestResult = await client.from("observations").select(observationSelect).eq("run_id", latestRun.id).order("created_at", { ascending: true });
-    if (latestResult.error) throw new Error(`Latest evidence could not be loaded from Supabase: ${latestResult.error.message}`);
-    latestObservations = (latestResult.data ?? []) as ObservationRow[];
+    if (latestResult.error) {
+      latestObservationsError = "Latest evidence is temporarily unavailable.";
+    } else {
+      latestObservations = (latestResult.data ?? []) as ObservationRow[];
+    }
   }
-  return configuredResult(client, { runs, findings: (findingsResult.data ?? []) as FindingRow[], observationCount: observationsResult.count ?? 0, latestObservations });
+  return configuredResult(client, {
+    runs,
+    findings: (findingsResult.data ?? []) as FindingRow[],
+    observationCount: observationsResult.error ? null : observationsResult.count ?? 0,
+    observationCountError: observationsResult.error ? "Evidence count is temporarily unavailable." : null,
+    latestObservations,
+    latestObservationsError,
+  });
 }
