@@ -95,9 +95,9 @@ export function buildDraftFindings({ run, observations }: { run: RunRow; observa
  * Wraps the review-only rules in the metadata shape required by ANT-36.
  *
  * The metadata is intentionally explicit about the current boundary: this is
- * not a model call and is not persisted as an analysis record yet. Keeping a
- * stable analysis ID and versioned rule/prompt labels makes the next durable
- * analysis table and human approval step additive rather than ambiguous.
+ * not a model call. Keeping a stable analysis ID and versioned rule/prompt
+ * labels makes the guarded durable snapshot and human approval step additive
+ * rather than ambiguous.
  */
 export function buildDraftAnalysis({
   run,
@@ -129,7 +129,7 @@ export function buildDraftAnalysis({
   };
 }
 
-/** Return the database-safe snapshot for a future approved persistence step. */
+/** Return the database-safe snapshot for the guarded persistence step. */
 export function toAnalysisRecordPayload(analysis: DraftAnalysis): AnalysisRecordPayload {
   const observationIds = [...new Set(analysis.findings.flatMap((finding) => finding.evidenceIds))];
 
