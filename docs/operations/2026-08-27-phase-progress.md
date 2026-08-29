@@ -71,6 +71,10 @@ Observatory boundary work.
   reproducible when the Vercel runtime executes in UTC while the operator works
   in Europe/Dublin; the timezone defaults safely to UTC and is not changed in
   production by this local checkpoint.
+- Provider reliability slice: Firecrawl and Exa now retry one transient HTTP,
+  timeout, or network failure with a bounded backoff. Each provider observation
+  records `attempts` and `retryCount`, while permanent HTTP failures are returned
+  immediately and remain visible as provider failures.
 - Phase 5 foundation: GitHub Actions quality gate, dependency review, CodeQL,
   Dependabot configuration, protected-main workflow, Vercel Git deployment,
   and local response-header hardening.

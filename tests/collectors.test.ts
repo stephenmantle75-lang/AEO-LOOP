@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sanitizeCitationUrl, sanitizeCitations } from "../src/lib/collectors";
+import { isRetryableProviderStatus, sanitizeCitationUrl, sanitizeCitations } from "../src/lib/collectors";
 
 describe("provider citation boundaries", () => {
   it("accepts HTTPS URLs and normalizes surrounding whitespace", () => {
@@ -20,5 +20,13 @@ describe("provider citation boundaries", () => {
       { url: "https://example.com/one", title: "One", position: 1 },
       { url: "javascript:alert(1)", title: "Unsafe", position: 2 },
     ])).toEqual([{ url: "https://example.com/one", title: "One", position: 1 }]);
+  });
+
+  it("only retries transient provider responses", () => {
+    expect(isRetryableProviderStatus(408)).toBe(true);
+    expect(isRetryableProviderStatus(429)).toBe(true);
+    expect(isRetryableProviderStatus(503)).toBe(true);
+    expect(isRetryableProviderStatus(400)).toBe(false);
+    expect(isRetryableProviderStatus(404)).toBe(false);
   });
 });
