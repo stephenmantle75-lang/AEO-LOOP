@@ -22,12 +22,20 @@ export type AnalysisRecordRow = {
 const runSelect = "id, run_key, run_type, status, started_at, created_at, completed_at, duration_ms, cost_usd, sources, agent_version, metadata, error_message";
 const observationSelect = "id, run_id, topic_key, provider, observation_type, status, question, target_url, answer_text, mentioned, citation_found, citation_urls, citations, metrics, source_url, confidence, error_message, observed_at, created_at";
 
+export class AnalysisRunNotFoundError extends Error {
+  constructor() {
+    super("Stored analysis run was not found");
+    this.name = "AnalysisRunNotFoundError";
+  }
+}
+
 async function loadAnalysisInputs(client: SupabaseClient, runId: string): Promise<{ run: RunRow; observations: ObservationRow[] }> {
   const [runResult, observationsResult] = await Promise.all([
     client.from("runs").select(runSelect).eq("id", runId).single(),
     client.from("observations").select(observationSelect).eq("run_id", runId).order("created_at", { ascending: true }),
   ]);
 
+  if (runResult.error?.code === "PGRST116") throw new AnalysisRunNotFoundError();
   if (runResult.error) throw new Error(`Analysis run could not be loaded: ${runResult.error.message}`);
   if (observationsResult.error) throw new Error(`Analysis observations could not be loaded: ${observationsResult.error.message}`);
 
@@ -35,6 +43,12 @@ async function loadAnalysisInputs(client: SupabaseClient, runId: string): Promis
     run: runResult.data as RunRow,
     observations: (observationsResult.data ?? []) as ObservationRow[],
   };
+}
+
+/** Build a review-only snapshot from one stored run without writing anywhere. */
+export async function previewStoredRunAnalysis(client: SupabaseClient, runId: string) {
+  const inputs = await loadAnalysisInputs(client, runId);
+  return buildDraftAnalysis(inputs);
 }
 
 /** Persist one deterministic, evidence-linked analysis snapshot after a run closes. */
