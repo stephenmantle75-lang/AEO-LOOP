@@ -58,6 +58,10 @@ Observatory boundary work.
   and prompt provenance, confidence, recommendations, and links back to each
   source observation. Persisted findings remain a separate section so an empty
   findings table cannot be mistaken for a failed collection run.
+- Security boundary slice: protected cron, experiment, and analysis-preview
+  routes now return stable generic 5xx messages and `no-store` responses while
+  server logging records only safe error classification. Detailed provider and
+  database errors remain private to the server-side run/error records.
 - Phase 5 foundation: GitHub Actions quality gate, dependency review, CodeQL,
   Dependabot configuration, protected-main workflow, Vercel Git deployment,
   and local response-header hardening.
