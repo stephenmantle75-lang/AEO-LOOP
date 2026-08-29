@@ -53,6 +53,11 @@ Observatory boundary work.
 - Phase 4 preview slice: a protected `POST /api/analysis/preview` route can
   read one stored run and return the deterministic, evidence-linked draft
   analysis without writing `analyses`, calling a model, or delivering work.
+- Phase 4 dashboard traceability slice: the run-detail page now shows the same
+  draft-only analysis directly beneath the provider evidence, including rule
+  and prompt provenance, confidence, recommendations, and links back to each
+  source observation. Persisted findings remain a separate section so an empty
+  findings table cannot be mistaken for a failed collection run.
 - Phase 5 foundation: GitHub Actions quality gate, dependency review, CodeQL,
   Dependabot configuration, protected-main workflow, Vercel Git deployment,
   and local response-header hardening.
