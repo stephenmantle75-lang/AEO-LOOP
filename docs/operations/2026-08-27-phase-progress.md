@@ -66,6 +66,11 @@ Observatory boundary work.
   through an HTTPS-only sanitizer before they become stored citation URLs or
   rendered links. URLs with unsafe schemes, embedded credentials, malformed
   values, or excessive length are dropped and counted in provider metrics.
+- Reporting boundary slice: daily run keys and claim metadata now use an
+  explicit, validated reporting timezone. This keeps the calendar date
+  reproducible when the Vercel runtime executes in UTC while the operator works
+  in Europe/Dublin; the timezone defaults safely to UTC and is not changed in
+  production by this local checkpoint.
 - Phase 5 foundation: GitHub Actions quality gate, dependency review, CodeQL,
   Dependabot configuration, protected-main workflow, Vercel Git deployment,
   and local response-header hardening.

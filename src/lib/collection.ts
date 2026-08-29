@@ -5,10 +5,7 @@ import { experimentRunKey, promptLimit, seoVsAeoTopic, topicForKey, type TopicDe
 import { createServiceClient } from "./supabase";
 import { persistClosedRunReport } from "./reporting-persistence";
 import { persistClosedRunAnalysis } from "./analysis-persistence";
-
-function dateKey(): string {
-  return new Date().toISOString().slice(0, 10);
-}
+import { reportingDateKey } from "./reporting-clock";
 
 function observationRow(runId: string, topic: TopicDefinition, provider: string, observationType: string, question: string, result: PageObservation) {
   const targetUrl = topic.targetUrl;
@@ -65,7 +62,13 @@ async function runTopicObservation(config: CollectionConfig): Promise<Collection
   const startedAt = Date.now();
   const sources = ["firecrawl", "exa"];
   const prompts = promptLimit(config.topic);
-  const claim = await config.claim(client, config.runKey, sources, { topicKey: config.topic.key, promptLimit: prompts.length, targetUrl: config.topic.targetUrl });
+  const claim = await config.claim(client, config.runKey, sources, {
+    topicKey: config.topic.key,
+    promptLimit: prompts.length,
+    targetUrl: config.topic.targetUrl,
+    reportingTimeZone: env.reportingTimeZone,
+    reportingDate: reportingDateKey(new Date(), env.reportingTimeZone),
+  });
   if (!claim.claimed || !claim.run) return { runId: claim.run?.id ?? "", runType: config.runType, topicKey: config.topic.key, status: "not_started", observations: 0, reason: claim.reason };
 
   const runId = claim.run.id;
@@ -115,9 +118,10 @@ async function runTopicObservation(config: CollectionConfig): Promise<Collection
 }
 
 export async function runDailyObservation(): Promise<CollectionResult> {
+  const env = getServerEnv();
   return runTopicObservation({
     topic: seoVsAeoTopic,
-    runKey: `daily-observation:${dateKey()}`,
+    runKey: `daily-observation:${reportingDateKey(new Date(), env.reportingTimeZone)}`,
     runType: "daily_observation",
     claim: claimDailyRun,
   });
