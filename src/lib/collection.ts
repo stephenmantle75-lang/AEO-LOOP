@@ -6,6 +6,22 @@ import { createServiceClient } from "./supabase";
 import { persistClosedRunReport } from "./reporting-persistence";
 import { persistClosedRunAnalysis } from "./analysis-persistence";
 import { reportingDateKey } from "./reporting-clock";
+import { isMonthlyBudgetExhausted, utcMonthWindow } from "./budget";
+
+async function monthlySpendUsd(client: ReturnType<typeof createServiceClient>, date: Date): Promise<number> {
+  const window = utcMonthWindow(date);
+  const { data, error } = await client
+    .from("runs")
+    .select("cost_usd")
+    .gte("started_at", window.start)
+    .lt("started_at", window.end);
+  if (error) throw new Error(`Could not read monthly provider spend: ${error.message}`);
+
+  return (data ?? []).reduce((total, row) => {
+    const cost = Number((row as { cost_usd?: unknown }).cost_usd);
+    return Number.isFinite(cost) && cost >= 0 ? total + cost : total;
+  }, 0);
+}
 
 function observationRow(runId: string, topic: TopicDefinition, provider: string, observationType: string, question: string, result: PageObservation) {
   const targetUrl = topic.targetUrl;
@@ -68,6 +84,7 @@ async function runTopicObservation(config: CollectionConfig): Promise<Collection
     targetUrl: config.topic.targetUrl,
     reportingTimeZone: env.reportingTimeZone,
     reportingDate: reportingDateKey(new Date(), env.reportingTimeZone),
+    monthlyProviderBudgetUsd: env.monthlyProviderBudgetUsd ?? null,
   });
   if (!claim.claimed || !claim.run) return { runId: claim.run?.id ?? "", runType: config.runType, topicKey: config.topic.key, status: "not_started", observations: 0, reason: claim.reason };
 
@@ -76,6 +93,14 @@ async function runTopicObservation(config: CollectionConfig): Promise<Collection
   let failures = 0;
   let costUsd = 0;
   try {
+    if (env.monthlyProviderBudgetUsd !== undefined) {
+      const spendUsd = await monthlySpendUsd(client, new Date());
+      if (isMonthlyBudgetExhausted(spendUsd, env.monthlyProviderBudgetUsd)) {
+        await completeRun(client, runId, "failed", startedAt, sources, 0, "Monthly provider budget exhausted before collection started");
+        return { runId, runType: config.runType, topicKey: config.topic.key, status: "failed", observations: 0, reason: "monthly_provider_budget_exhausted" };
+      }
+    }
+
     const pageResult = await scrapeTargetPage(config.topic.targetUrl);
     await insertObservation(client, observationRow(runId, config.topic, "firecrawl", "page_fetch", config.topic.question, pageResult));
     observations += 1;

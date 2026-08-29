@@ -75,6 +75,11 @@ Observatory boundary work.
   timeout, or network failure with a bounded backoff. Each provider observation
   records `attempts` and `retryCount`, while permanent HTTP failures are returned
   immediately and remain visible as provider failures.
+- Budget guard slice: an optional `AEO_MONTHLY_PROVIDER_BUDGET_USD` hard stop
+  now checks completed run spend for the current UTC calendar month before any
+  provider call. If the cap is reached, the claimed run is closed as a visible
+  failure with zero observations; the control stays disabled when the variable
+  is blank and no production variable was changed here.
 - Phase 5 foundation: GitHub Actions quality gate, dependency review, CodeQL,
   Dependabot configuration, protected-main workflow, Vercel Git deployment,
   and local response-header hardening.

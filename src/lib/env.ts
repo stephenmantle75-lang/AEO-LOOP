@@ -1,4 +1,5 @@
 import { reportingTimeZone } from "./reporting-clock";
+import { parseMonthlyProviderBudgetUsd } from "./budget";
 
 const required = ["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"] as const;
 
@@ -11,6 +12,7 @@ export type ServerEnv = {
   reportPersistenceEnabled: boolean;
   analysisPersistenceEnabled: boolean;
   reportingTimeZone: string;
+  monthlyProviderBudgetUsd?: number;
 };
 
 export function getServerEnv(): ServerEnv {
@@ -28,6 +30,7 @@ export function getServerEnv(): ServerEnv {
     reportPersistenceEnabled: process.env.AEO_REPORT_PERSISTENCE_ENABLED === "true",
     analysisPersistenceEnabled: process.env.AEO_ANALYSIS_PERSISTENCE_ENABLED === "true",
     reportingTimeZone: reportingTimeZone(),
+    monthlyProviderBudgetUsd: parseMonthlyProviderBudgetUsd(),
   };
 }
 
