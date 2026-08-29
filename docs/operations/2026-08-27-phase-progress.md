@@ -50,6 +50,9 @@ Observatory boundary work.
   `AEO_ANALYSIS_PERSISTENCE_ENABLED` flag. It records provenance and source
   observation IDs but does not call a model, create findings, or trigger
   external actions.
+- Phase 4 preview slice: a protected `POST /api/analysis/preview` route can
+  read one stored run and return the deterministic, evidence-linked draft
+  analysis without writing `analyses`, calling a model, or delivering work.
 - Phase 5 foundation: GitHub Actions quality gate, dependency review, CodeQL,
   Dependabot configuration, protected-main workflow, Vercel Git deployment,
   and local response-header hardening.
@@ -92,6 +95,8 @@ model-backed analysis is active.
    deliberately sanitized public read model.
 4. Review and approve the first draft finding in the Observatory before
    enabling analysis persistence or external delivery capability.
+   The protected analysis preview route can be used to inspect that draft
+   against a specific stored run while the persistence flag remains off.
 5. Connect Search Console and analytics only when ready to measure real search
    and human traffic; keep those signals separate from synthetic citations.
 6. Approve the first Slack/Zapier test only after a real report is trusted and

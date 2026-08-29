@@ -84,3 +84,40 @@ curl -X POST "$AEO_LOOP_URL/api/runs/experiment" \
 
 The endpoint does not create Linear issues, send Slack/Zapier messages, edit
 portfolio files, or deploy code. Those remain separate human-approved phases.
+
+## Read-only analysis preview
+
+After a run is stored, the operator can inspect the deterministic analysis
+without enabling cron persistence:
+
+```text
+POST /api/analysis/preview
+Authorization: Bearer $CRON_SECRET
+Content-Type: application/json
+```
+
+Body:
+
+```json
+{ "runId": "<stored-run-uuid>" }
+```
+
+The response is explicitly `mode = draft_only`. It loads the selected run and
+its observations, returns evidence-linked draft findings, and performs no
+database write, model call, Linear/Slack/Zapier delivery, portfolio edit, or
+deployment. It rejects non-UUID run IDs and does not accept a topic or URL,
+which keeps the preview tied to an existing stored run.
+
+```mermaid
+flowchart LR
+    O[Authorized operator] --> P[POST /api/analysis/preview]
+    P --> V[Validate stored run UUID]
+    V --> S[(Supabase read: run + observations)]
+    S --> D[Deterministic draft rules]
+    D --> R[JSON review response]
+    R -. no write .-> A[(analyses table)]
+    R -. no delivery .-> L[Linear / Slack / portfolio]
+```
+
+This is the next ANT-36 testable slice: it proves the evidence-to-finding
+boundary on demand while the durable persistence flag remains disabled.
