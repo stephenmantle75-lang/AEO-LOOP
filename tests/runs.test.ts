@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { heartbeatState } from "../src/lib/observatory";
 import { touchRunHeartbeat } from "../src/lib/runs";
 
 describe("run heartbeat", () => {
@@ -17,5 +18,13 @@ describe("run heartbeat", () => {
     expect(update).toHaveBeenCalledWith({ heartbeat_at: expect.any(String) });
     expect(chain.eq).toHaveBeenNthCalledWith(1, "id", "run-123");
     expect(chain.eq).toHaveBeenNthCalledWith(2, "status", "running");
+  });
+
+  it("classifies running heartbeat freshness without relying on color alone", () => {
+    const now = Date.parse("2026-08-29T22:00:00.000Z");
+    expect(heartbeatState("running", "2026-08-29T21:59:30.000Z", now)).toMatchObject({ state: "live" });
+    expect(heartbeatState("running", "2026-08-29T21:59:14.000Z", now)).toMatchObject({ state: "stale" });
+    expect(heartbeatState("running", null, now)).toMatchObject({ state: "awaiting" });
+    expect(heartbeatState("succeeded", "2026-08-29T21:59:14.000Z", now)).toMatchObject({ state: "closed" });
   });
 });

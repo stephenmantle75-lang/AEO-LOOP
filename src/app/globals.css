@@ -62,6 +62,14 @@ td small { display: block; max-width: 330px; overflow: hidden; color: var(--mute
 .empty { padding: 32px 20px 38px; color: var(--muted); font-size: 13px; line-height: 1.6; }
 .empty strong { display: block; color: var(--ink); font-size: 15px; margin-bottom: 4px; }
 .run-status { display: inline-flex; align-items: center; gap: 6px; }
+.heartbeat-indicator { align-items: center; display: inline-flex; gap: 6px; }
+.heartbeat-indicator.live { color: var(--green) !important; }
+.heartbeat-indicator.stale { color: #b34040 !important; }
+.heartbeat-indicator.awaiting { color: #9b5e1f !important; }
+.heartbeat-dot { background: #b8c3d1; border-radius: 50%; display: inline-block; height: 7px; width: 7px; }
+.heartbeat-indicator.live .heartbeat-dot { background: var(--green); }
+.heartbeat-indicator.stale .heartbeat-dot { background: #d64545; }
+.heartbeat-indicator.awaiting .heartbeat-dot { background: var(--orange); }
 .dot { width: 7px; height: 7px; border-radius: 50%; background: #b8c3d1; }
 .dot.success { background: var(--green); } .dot.partial { background: var(--orange); } .dot.failed { background: #d64545; }
 .topic-list { padding: 6px 20px 20px; }

@@ -80,6 +80,7 @@ export type TopicSummary = {
 };
 
 export type ObservatoryResult<T> = { connected: true; data: T } | { connected: false; data: T };
+export type HeartbeatState = { state: "live" | "stale" | "awaiting" | "closed"; label: string };
 
 export type OverviewData = {
   runs: RunRow[];
@@ -151,6 +152,15 @@ export function citationRate(observations: ObservationRow[]): number | null {
 
 export function statusLabel(value: string): string {
   return value.replaceAll("_", " ");
+}
+
+export function heartbeatState(status: string, heartbeatAt: string | null, now = Date.now(), staleAfterMs = 45_000): HeartbeatState {
+  if (status !== "running") return { state: "closed", label: heartbeatAt ? "Closed · last heartbeat recorded" : "Closed · no heartbeat recorded" };
+  if (!heartbeatAt) return { state: "awaiting", label: "Awaiting first heartbeat" };
+  const heartbeatTime = Date.parse(heartbeatAt);
+  return Number.isFinite(heartbeatTime) && now - heartbeatTime <= staleAfterMs
+    ? { state: "live", label: "Live · heartbeat is fresh" }
+    : { state: "stale", label: "Stale · no heartbeat in the last 45 seconds" };
 }
 
 function configuredResult<T>(client: SupabaseClient | null, data: T): ObservatoryResult<T> {

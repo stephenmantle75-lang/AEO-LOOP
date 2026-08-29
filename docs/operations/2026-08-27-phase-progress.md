@@ -83,8 +83,9 @@ Observatory boundary work.
 - Heartbeat slice: running records now carry `heartbeat_at`, refreshed before
   collection and every 15 seconds while providers are executing, then stamped
   again at close. The run-detail surface exposes the last heartbeat, and the
-  migration adds an index for future stale-run monitoring; the migration has
-  not been applied to production in this local phase.
+  migration adds an index for stale-run monitoring. Run detail labels a running
+  job as live, awaiting, or stale after 45 seconds without a heartbeat; the
+  migration has not been applied to production in this local phase.
 - Phase 5 foundation: GitHub Actions quality gate, dependency review, CodeQL,
   Dependabot configuration, protected-main workflow, Vercel Git deployment,
   and local response-header hardening.
