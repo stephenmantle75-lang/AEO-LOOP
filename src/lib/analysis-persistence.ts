@@ -29,6 +29,13 @@ export class AnalysisRunNotFoundError extends Error {
   }
 }
 
+export class AnalysisReviewError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "AnalysisReviewError";
+  }
+}
+
 async function loadAnalysisInputs(client: SupabaseClient, runId: string): Promise<{ run: RunRow; observations: ObservationRow[] }> {
   const [runResult, observationsResult] = await Promise.all([
     client.from("runs").select(runSelect).eq("id", runId).single(),
@@ -75,4 +82,54 @@ export async function persistClosedRunAnalysis(client: SupabaseClient, runId: st
 
   if (error) throw new Error(`Analysis could not be persisted: ${error.message}`);
   return data as AnalysisRecordRow;
+}
+
+export async function getPersistedAnalysisForRun(client: SupabaseClient, runId: string): Promise<AnalysisRecordRow | null> {
+  const { data, error } = await client
+    .from("analyses")
+    .select("id, analysis_key, run_id, status, agent_version, model, prompt_version, review_mode, cost_usd, observation_ids, findings, analyzed_at, created_at, updated_at")
+    .eq("run_id", runId)
+    .order("analyzed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw new Error(`Analysis could not be loaded: ${error.message}`);
+  return (data as AnalysisRecordRow | null) ?? null;
+}
+
+export async function reviewPersistedAnalysis({
+  client,
+  runId,
+  reviewerId,
+  decision,
+  reviewNote,
+}: {
+  client: SupabaseClient;
+  runId: string;
+  reviewerId: string;
+  decision: "approved" | "rejected";
+  reviewNote: string;
+}): Promise<{ analysisId: string; runId: string; status: "approved" | "rejected"; findingCount: number }> {
+  const { data, error } = await client.rpc("review_analysis", {
+    p_run_id: runId,
+    p_reviewer_id: reviewerId,
+    p_decision: decision,
+    p_review_note: reviewNote,
+  });
+
+  if (error || !data || typeof data !== "object") {
+    throw new AnalysisReviewError("Analysis review could not be completed");
+  }
+
+  const result = data as { analysis_id?: unknown; run_id?: unknown; status?: unknown; finding_count?: unknown };
+  if (typeof result.analysis_id !== "string" || typeof result.run_id !== "string" || (result.status !== "approved" && result.status !== "rejected") || typeof result.finding_count !== "number") {
+    throw new AnalysisReviewError("Analysis review returned an invalid result");
+  }
+
+  return {
+    analysisId: result.analysis_id,
+    runId: result.run_id,
+    status: result.status,
+    findingCount: result.finding_count,
+  };
 }

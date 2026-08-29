@@ -6,8 +6,9 @@ Supabase is the private system of record for the AEO growth loop. It stores what
 
 This is the v1 foundation, not the complete final schema. The reporting slice
 now adds `reports`, `report_outbox`, and `delivery_events` because delivery
-needs a durable, idempotent contract. Other domain tables for research
-batches, metrics, experiments, deployments, and audit events should still be
+needs a durable, idempotent contract. The analysis slice adds durable draft
+snapshots plus an explicit human-review event. Other domain tables for
+research batches, metrics, experiments, and deployments should still be
 introduced only as working vertical slices need them.
 
 Project: `AEO LOOP` in `mants org`
@@ -67,6 +68,25 @@ The recommendation layer. Each finding points to the run that produced it and re
 - `linear_issue_*`: external work tracking references.
 - `slack_delivery_status`: notification delivery state.
 
+Approved analysis candidates are copied into `findings` with `analysis_id` and
+`source_key`, preserving the exact draft candidate that became actionable.
+
+### `analyses`
+
+One deterministic, evidence-linked analysis snapshot for a stored run.
+
+- `status`: `draft`, `approved`, or `rejected`.
+- `observation_ids`: source evidence IDs that the snapshot is allowed to use.
+- `findings`: draft candidates, each retaining its evidence IDs.
+- `reviewed_by`, `reviewed_at`, and `review_note`: human decision metadata.
+
+### `analysis_review_events`
+
+An append-only record of the single review decision for an analysis. It stores
+the reviewer UUID, decision, note, run, and evidence IDs. It is service-role
+only and is written in the same database transition that changes an analysis
+status and, for approval, creates findings.
+
 ### `reports`
 
 One sanitized, versioned report contract derived from a stored run. A report is
@@ -91,8 +111,10 @@ audited without duplicating a message or issue.
 All tables have Row Level Security enabled. Anonymous and authenticated table
 access is revoked. The Observatory server uses the Supabase service role in a
 server-only environment; that key must never be placed in `NEXT_PUBLIC_*`
-variables or browser code. The reporting and analysis tables are service-role
-only; analysis persistence remains disabled until its review policy is approved.
+variables or browser code. The reporting and analysis tables remain
+service-role only. Human review is separately gated by Supabase Auth and a
+server-side owner UUID allowlist; the review flag is disabled until that
+manual configuration is complete.
 
 ## Provenance rules
 

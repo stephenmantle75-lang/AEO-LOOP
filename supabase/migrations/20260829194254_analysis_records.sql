@@ -1,7 +1,6 @@
 -- ANT-36: durable, evidence-linked analysis snapshots.
--- This migration is intentionally not applied by the application. The cron
--- path must remain draft-only until human approval and persistence policy are
--- reviewed.
+-- The cron path remains draft-only. Human approval is added separately in
+-- 20260829224252_secure_analysis_review.sql and is still opt-in at runtime.
 create table if not exists public.analyses (
   id uuid primary key default gen_random_uuid(),
   analysis_key text not null unique,
