@@ -28,7 +28,9 @@ describe("topic contract", () => {
       "self-improving-website",
       "github-linear-slack-website-loop",
     ]);
-    expect(topicForKey("self-improving-website").targetUrl).toContain("/insights/self-improving-website");
+    const selfImprovingWebsite = topicForKey("self-improving-website");
+    expect(selfImprovingWebsite).not.toBeNull();
+    expect(selfImprovingWebsite?.targetUrl).toContain("/insights/self-improving-website");
     expect(topicForKey("unknown-topic")).toBeNull();
   });
 
