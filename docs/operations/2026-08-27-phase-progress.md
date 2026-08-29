@@ -86,6 +86,10 @@ Observatory boundary work.
   migration adds an index for stale-run monitoring. Run detail labels a running
   job as live, awaiting, or stale after 45 seconds without a heartbeat; the
   migration has not been applied to production in this local phase.
+- Overview monitoring slice: the Observatory overview now queries active runs,
+  counts stale heartbeats, and shows a clearly labelled page-load monitoring
+  snapshot. This is an operator visibility surface, not a real-time alert
+  channel; stale records still require run-detail and provider-log review.
 - Phase 5 foundation: GitHub Actions quality gate, dependency review, CodeQL,
   Dependabot configuration, protected-main workflow, Vercel Git deployment,
   and local response-header hardening.

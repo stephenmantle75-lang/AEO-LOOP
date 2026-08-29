@@ -85,6 +85,8 @@ export type HeartbeatState = { state: "live" | "stale" | "awaiting" | "closed"; 
 export type OverviewData = {
   runs: RunRow[];
   findings: FindingRow[];
+  runningRunCount: number;
+  staleRunCount: number;
   observationCount: number | null;
   observationCountError: string | null;
   latestObservations: ObservationRow[];
@@ -161,6 +163,14 @@ export function heartbeatState(status: string, heartbeatAt: string | null, now =
   return Number.isFinite(heartbeatTime) && now - heartbeatTime <= staleAfterMs
     ? { state: "live", label: "Live · heartbeat is fresh" }
     : { state: "stale", label: "Stale · no heartbeat in the last 45 seconds" };
+}
+
+export function staleRunCount(
+  runs: Array<Pick<RunRow, "status" | "heartbeat_at">>,
+  now = Date.now(),
+  staleAfterMs = 45_000,
+): number {
+  return runs.filter((run) => heartbeatState(run.status, run.heartbeat_at, now, staleAfterMs).state === "stale").length;
 }
 
 function configuredResult<T>(client: SupabaseClient | null, data: T): ObservatoryResult<T> {
@@ -278,20 +288,25 @@ export async function getOverviewData(): Promise<ObservatoryResult<OverviewData>
   const empty: OverviewData = {
     runs: [],
     findings: [],
+    runningRunCount: 0,
+    staleRunCount: 0,
     observationCount: null,
     observationCountError: null,
     latestObservations: [],
     latestObservationsError: null,
   };
   if (!client) return configuredResult(client, empty);
-  const [runsResult, findingsResult, observationsResult] = await Promise.all([
+  const [runsResult, findingsResult, observationsResult, activeRunsResult] = await Promise.all([
     client.from("runs").select(runSelect).order("created_at", { ascending: false }).limit(8),
     client.from("findings").select(findingSelect).order("created_at", { ascending: false }).limit(5),
     client.from("observations").select("id", { count: "exact", head: true }),
+    client.from("runs").select("status, heartbeat_at").eq("status", "running"),
   ]);
   if (runsResult.error) throw new Error(`Runs could not be loaded from Supabase: ${runsResult.error.message}`);
   if (findingsResult.error) throw new Error(`Findings could not be loaded from Supabase: ${findingsResult.error.message}`);
+  if (activeRunsResult.error) throw new Error(`Active runs could not be loaded from Supabase: ${activeRunsResult.error.message}`);
   const runs = (runsResult.data ?? []) as RunRow[];
+  const activeRuns = (activeRunsResult.data ?? []) as Array<Pick<RunRow, "status" | "heartbeat_at">>;
   const latestRun = runs[0];
   let latestObservations: ObservationRow[] = [];
   let latestObservationsError: string | null = null;
@@ -306,6 +321,8 @@ export async function getOverviewData(): Promise<ObservatoryResult<OverviewData>
   return configuredResult(client, {
     runs,
     findings: (findingsResult.data ?? []) as FindingRow[],
+    runningRunCount: activeRuns.length,
+    staleRunCount: staleRunCount(activeRuns),
     observationCount: observationsResult.error ? null : observationsResult.count ?? 0,
     observationCountError: observationsResult.error ? "Evidence count is temporarily unavailable." : null,
     latestObservations,
