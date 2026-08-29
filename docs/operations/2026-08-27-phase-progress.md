@@ -80,6 +80,11 @@ Observatory boundary work.
   provider call. If the cap is reached, the claimed run is closed as a visible
   failure with zero observations; the control stays disabled when the variable
   is blank and no production variable was changed here.
+- Heartbeat slice: running records now carry `heartbeat_at`, refreshed before
+  collection and every 15 seconds while providers are executing, then stamped
+  again at close. The run-detail surface exposes the last heartbeat, and the
+  migration adds an index for future stale-run monitoring; the migration has
+  not been applied to production in this local phase.
 - Phase 5 foundation: GitHub Actions quality gate, dependency review, CodeQL,
   Dependabot configuration, protected-main workflow, Vercel Git deployment,
   and local response-header hardening.

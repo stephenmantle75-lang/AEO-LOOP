@@ -8,6 +8,7 @@ export type RunRow = {
   run_type: string;
   status: string;
   started_at: string;
+  heartbeat_at: string | null;
   created_at: string;
   completed_at: string | null;
   duration_ms: number | null;
@@ -89,7 +90,7 @@ export type OverviewData = {
   latestObservationsError: string | null;
 };
 
-const runSelect = "id, run_key, run_type, status, started_at, created_at, completed_at, duration_ms, cost_usd, sources, agent_version, metadata, error_message";
+const runSelect = "id, run_key, run_type, status, started_at, heartbeat_at, created_at, completed_at, duration_ms, cost_usd, sources, agent_version, metadata, error_message";
 const findingSelect = "id, run_id, topic_key, kind, title, summary, recommendation, priority, status, evidence_ids, expected_impact, confidence, linear_issue_url, slack_delivery_status, created_at";
 const observationSelect = "id, run_id, topic_key, provider, observation_type, status, question, target_url, answer_text, mentioned, citation_found, citation_urls, citations, metrics, source_url, confidence, error_message, observed_at, created_at";
 

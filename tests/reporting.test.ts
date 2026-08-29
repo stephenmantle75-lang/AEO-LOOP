@@ -10,6 +10,7 @@ const run: RunRow = {
   run_type: "daily_observation",
   status: "partial",
   started_at: "2026-08-27T08:00:00.000Z",
+  heartbeat_at: null,
   created_at: "2026-08-27T08:00:00.000Z",
   completed_at: "2026-08-27T08:00:10.000Z",
   duration_ms: 10000,

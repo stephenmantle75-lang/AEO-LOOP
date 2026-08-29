@@ -1,6 +1,6 @@
 import { getServerEnv } from "./env";
 import { scrapeTargetPage, searchWithExa, type PageObservation } from "./collectors";
-import { completeRun, insertObservation, claimDailyRun, claimExperimentRun, type ClaimResult } from "./runs";
+import { completeRun, insertObservation, claimDailyRun, claimExperimentRun, startRunHeartbeat, touchRunHeartbeat, type ClaimResult } from "./runs";
 import { experimentRunKey, promptLimit, seoVsAeoTopic, topicForKey, type TopicDefinition } from "./topic";
 import { createServiceClient } from "./supabase";
 import { persistClosedRunReport } from "./reporting-persistence";
@@ -92,6 +92,8 @@ async function runTopicObservation(config: CollectionConfig): Promise<Collection
   let observations = 0;
   let failures = 0;
   let costUsd = 0;
+  await touchRunHeartbeat(client, runId);
+  const stopHeartbeat = startRunHeartbeat(client, runId);
   try {
     if (env.monthlyProviderBudgetUsd !== undefined) {
       const spendUsd = await monthlySpendUsd(client, new Date());
@@ -139,6 +141,8 @@ async function runTopicObservation(config: CollectionConfig): Promise<Collection
   } catch (error) {
     await completeRun(client, runId, "failed", startedAt, sources, costUsd, error instanceof Error ? error.message : "Unknown collection error");
     throw error;
+  } finally {
+    await stopHeartbeat();
   }
 }
 
