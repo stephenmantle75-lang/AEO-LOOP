@@ -46,6 +46,9 @@ The database contract is live and the first application vertical slice is now pr
 
 - a server-only Next.js/Vercel app shell with a real Supabase dashboard query;
 - a protected daily cron route at `/api/cron/daily-observation`;
+- a protected manual experiment route at `/api/runs/experiment` that accepts
+  only the three approved portfolio topic keys and writes unique
+  `experiment_retest` runs;
 - one-topic Firecrawl page-integrity and bounded Exa citation collection;
 - idempotent daily run claims serialized by a Postgres advisory lock;
 - a real-data overview showing the latest run, provider health, citation rate,
@@ -72,6 +75,11 @@ deferred.
 
 See [docs/ci-cd-security.md](docs/ci-cd-security.md) for the CI/CD flow,
 required GitHub settings, and secret boundary.
+
+The manual experiment contract and operator sequence are documented in
+[docs/operations/manual-experiment-run.md](docs/operations/manual-experiment-run.md).
+Its Supabase claim migration must be applied before the deployed endpoint can
+create experiment runs.
 
 The verification checkpoint and current phase audit are documented in
 [docs/operations/2026-08-26-verification-checkpoint.md](docs/operations/2026-08-26-verification-checkpoint.md)
