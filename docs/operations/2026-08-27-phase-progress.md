@@ -62,6 +62,10 @@ Observatory boundary work.
   routes now return stable generic 5xx messages and `no-store` responses while
   server logging records only safe error classification. Detailed provider and
   database errors remain private to the server-side run/error records.
+- Provider input boundary slice: Firecrawl and Exa citation links now pass
+  through an HTTPS-only sanitizer before they become stored citation URLs or
+  rendered links. URLs with unsafe schemes, embedded credentials, malformed
+  values, or excessive length are dropped and counted in provider metrics.
 - Phase 5 foundation: GitHub Actions quality gate, dependency review, CodeQL,
   Dependabot configuration, protected-main workflow, Vercel Git deployment,
   and local response-header hardening.

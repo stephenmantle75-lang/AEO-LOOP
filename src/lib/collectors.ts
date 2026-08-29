@@ -23,6 +23,25 @@ function text(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
+/** Keep provider-returned links safe to store and render as external citations. */
+export function sanitizeCitationUrl(value: unknown): string | undefined {
+  if (typeof value !== "string" || value.trim().length === 0 || value.length > 2048) return undefined;
+  try {
+    const url = new URL(value.trim());
+    if (url.protocol !== "https:" || url.username || url.password || !url.hostname) return undefined;
+    return url.toString();
+  } catch {
+    return undefined;
+  }
+}
+
+export function sanitizeCitations(citations: Citation[]): Citation[] {
+  return citations.flatMap((citation) => {
+    const url = sanitizeCitationUrl(citation.url);
+    return url ? [{ ...citation, url }] : [];
+  });
+}
+
 function urlMatches(targetUrl: string, candidate: string): boolean {
   try {
     const target = new URL(targetUrl);
@@ -64,7 +83,11 @@ export async function scrapeTargetPage(targetUrl: string): Promise<PageObservati
     const data = isRecord(payload.data) ? payload.data : {};
     const metadata = isRecord(data.metadata) ? data.metadata : {};
     const markdown = text(data.markdown) ?? "";
-    const links = Array.isArray(data.links) ? data.links.filter((item): item is string => typeof item === "string") : [];
+    const rawLinks = Array.isArray(data.links) ? data.links.filter((item): item is string => typeof item === "string") : [];
+    const links = rawLinks.flatMap((link) => {
+      const safeUrl = sanitizeCitationUrl(link);
+      return safeUrl ? [safeUrl] : [];
+    });
     const statusCode = typeof metadata.statusCode === "number" ? metadata.statusCode : undefined;
     const title = text(metadata.title);
     const description = text(metadata.description);
@@ -77,7 +100,7 @@ export async function scrapeTargetPage(targetUrl: string): Promise<PageObservati
       citations: links.slice(0, 50).map((url, position) => ({ url, position: position + 1 })),
       sourceUrl: targetUrl,
       confidence: statusCode === 200 && intendedPage ? 1 : 0,
-      metrics: { configured: true, statusCode, title, description, contentCharacters: markdown.length, linkCount: links.length },
+      metrics: { configured: true, statusCode, title, description, contentCharacters: markdown.length, linkCount: links.length, rejectedLinkCount: rawLinks.length - links.length },
       ...(statusCode === 200 && intendedPage ? {} : { errorMessage: "Target page did not return an inspectable document" }),
     };
   } catch (error) {
@@ -104,10 +127,11 @@ export async function searchWithExa(prompt: string, targetUrl: string): Promise<
     }
 
     const results = Array.isArray(payload.results) ? payload.results.filter(isRecord) : [];
-    const citations = results.flatMap((result, index) => {
+    const rawCitations = results.flatMap((result, index) => {
       const url = text(result.url);
       return url ? [{ url, title: text(result.title), position: index + 1 }] : [];
     });
+    const citations = sanitizeCitations(rawCitations);
     const answerText = results
       .flatMap((result) => (Array.isArray(result.highlights) ? result.highlights.filter((item): item is string => typeof item === "string") : []))
       .join("\n\n")
@@ -116,14 +140,17 @@ export async function searchWithExa(prompt: string, targetUrl: string): Promise<
     const output = isRecord(payload.output) ? payload.output : {};
     const grounding = Array.isArray(output.grounding) ? output.grounding.filter(isRecord) : [];
     const groundedCitations = grounding.flatMap((item) => (Array.isArray(item.citations) ? item.citations.filter(isRecord) : []));
-    const groundedUrls = groundedCitations.flatMap((item) => { const url = text(item.url); return url ? [url] : []; });
+    const groundedUrls = groundedCitations.flatMap((item) => {
+      const url = sanitizeCitationUrl(item.url);
+      return url ? [url] : [];
+    });
 
     return {
       status: "observed",
       answerText,
       citationUrls: [...new Set([...citations.map((citation) => citation.url), ...groundedUrls])],
       citations,
-      metrics: { configured: true, resultCount: results.length, citationFound, requestId: text(payload.requestId), costDollars: isRecord(payload.costDollars) ? payload.costDollars : undefined },
+      metrics: { configured: true, resultCount: results.length, citationFound, rejectedCitationCount: rawCitations.length - citations.length, requestId: text(payload.requestId), costDollars: isRecord(payload.costDollars) ? payload.costDollars : undefined },
       confidence: results.length > 0 ? 0.8 : 0.2,
     };
   } catch (error) {
