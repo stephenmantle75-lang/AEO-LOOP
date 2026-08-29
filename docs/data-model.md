@@ -91,8 +91,8 @@ audited without duplicating a message or issue.
 All tables have Row Level Security enabled. Anonymous and authenticated table
 access is revoked. The Observatory server uses the Supabase service role in a
 server-only environment; that key must never be placed in `NEXT_PUBLIC_*`
-variables or browser code. The reporting migration is staged locally and is not
-applied to production yet.
+variables or browser code. The reporting and analysis tables are service-role
+only; analysis persistence remains disabled until its review policy is approved.
 
 ## Provenance rules
 

@@ -35,11 +35,11 @@ Observatory boundary work.
   timestamp, and review-only boundary. This makes the current deterministic
   analyzer inspectable without pretending that a model-backed analysis record
   already exists.
-- Phase 4 persistence contract: a local-only `analyses` migration and sanitized
-  payload builder now define where a future analysis snapshot will store its
-  run, version, model, prompt, cost, status, source observation IDs, and
-  evidence-linked findings. The migration is not applied and no runtime writes
-  are enabled.
+- Phase 4 persistence contract: the `analyses` migration and sanitized payload
+  builder define where an analysis snapshot stores its run, version, model,
+  prompt, cost, status, source observation IDs, and evidence-linked findings.
+  The migration is live as Supabase version `20260829194254` (`analysis_records`)
+  and the runtime flag remains disabled.
 - Phase 4 experiment slice: a protected manual experiment route now accepts
   only the three approved portfolio topic keys, claims a unique
   `experiment_retest` run, and reuses the bounded Firecrawl/Exa collection
@@ -58,11 +58,10 @@ Observatory boundary work.
 
 - The feature branch has been reconciled with the latest `origin/main`.
 - Main already contains the production Findings/reporting foundation; this
-  local checkpoint adds the openable finding detail surface and its read-only
-  evidence trace.
-- The local branch contains documentation and experiment records that are not
-  in production. No push, merge, or deployment was performed in this
-  checkpoint.
+  checkpoint adds guarded analysis persistence and accurate provenance copy.
+- The `analyses` schema is live, but `AEO_ANALYSIS_PERSISTENCE_ENABLED` remains
+  false, so no analysis rows have been written and no deployment was performed
+  from this branch yet.
 
 ## Deferred intentionally
 
@@ -72,10 +71,10 @@ Observatory boundary work.
 - Search Console and privacy-conscious human analytics adapters.
 - Persisted report/outbox/delivery tables and Slack/Zapier activation.
 - Model-backed analysis-agent findings, human approval, and experiment
-  orchestration remain deferred. The local durable analysis persistence path is
-  implemented but disabled until the migration is applied and its review policy
-  is approved. The manual experiment runner is collection-only and does not
-  create findings.
+  orchestration remain deferred. The durable analysis persistence path is
+  implemented and its service-role-only table is live, but the runtime flag is
+  disabled until its review policy is approved. The manual experiment runner
+  is collection-only and does not create findings.
 - Portfolio redesign and public case-study proof.
 
 The experiment, integration, and architecture pages are explanatory control
@@ -87,11 +86,12 @@ model-backed analysis is active.
 1. Review the next fresh daily run in Vercel logs and Supabase. Confirm a new
    run key, Firecrawl target result, Exa result, status, duration, and cost.
 2. Confirm the live repository migration history matches the migrations in
-   `supabase/migrations/`, especially `claim_daily_run`.
+   `supabase/migrations/`, including `claim_daily_run` and
+   `20260829194254_analysis_records`.
 3. Choose the Observatory access model: private operator dashboard or a
    deliberately sanitized public read model.
-4. Review and approve the first draft finding in the Observatory before any
-   persistence or external delivery capability is enabled.
+4. Review and approve the first draft finding in the Observatory before
+   enabling analysis persistence or external delivery capability.
 5. Connect Search Console and analytics only when ready to measure real search
    and human traffic; keep those signals separate from synthetic citations.
 6. Approve the first Slack/Zapier test only after a real report is trusted and
