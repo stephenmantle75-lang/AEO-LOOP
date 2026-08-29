@@ -28,6 +28,62 @@ export const seoVsAeoTopic: TopicDefinition = {
   ],
 };
 
+function portfolioOrigin(): string {
+  try {
+    return new URL(process.env.AEO_TARGET_URL ?? defaultAeoTargetUrl).origin;
+  } catch {
+    return new URL(defaultAeoTargetUrl).origin;
+  }
+}
+
+const portfolioBase = portfolioOrigin();
+
+export const selfImprovingWebsiteTopic: TopicDefinition = {
+  key: "self-improving-website",
+  question: "How can a website designer build a self-improving website?",
+  targetUrl: `${portfolioBase}/insights/self-improving-website`,
+  prompts: [
+    "How can a website designer build a self-improving website?",
+    "What makes a website improvement loop measurable?",
+    "How should a portfolio website learn from visitor and search evidence?",
+    "What is an example of a self-improving website workflow?",
+    "How can a designer improve a website without guessing?",
+    "What data should a website record before making improvements?",
+    "How do experiments improve a personal website over time?",
+    "What is the safest way to automate website improvements?",
+    "How can a website turn feedback into better content?",
+    "Which page explains how a website can improve itself?",
+  ],
+};
+
+export const githubLinearSlackTopic: TopicDefinition = {
+  key: "github-linear-slack-website-loop",
+  question: "How do GitHub, Linear, and Slack work together in a website improvement loop?",
+  targetUrl: `${portfolioBase}/insights/github-linear-slack-website-loop`,
+  prompts: [
+    "How do GitHub, Linear, and Slack work together in a website improvement loop?",
+    "How can Linear and GitHub coordinate website changes?",
+    "What role does Slack play in a GitHub website workflow?",
+    "How should an automated website finding become a GitHub pull request?",
+    "What is a safe CI/CD workflow for evidence-backed website changes?",
+    "How can a team track website experiments with Linear and GitHub?",
+    "How do Slack notifications fit into a review-first development process?",
+    "What should be automated between research, issues, and pull requests?",
+    "How can GitHub Actions protect an automated website improvement loop?",
+    "Which page explains the GitHub, Linear, and Slack website workflow?",
+  ],
+};
+
+export const knownTopics: TopicDefinition[] = [seoVsAeoTopic, selfImprovingWebsiteTopic, githubLinearSlackTopic];
+
+export function topicForKey(key: string): TopicDefinition | null {
+  return knownTopics.find((topic) => topic.key === key) ?? null;
+}
+
+export function experimentRunKey(topicKey: string, startedAt: string, nonce: string): string {
+  return `experiment:${topicKey}:${startedAt}:${nonce}`;
+}
+
 export function promptLimit(topic: TopicDefinition): string[] {
   const configured = Number.parseInt(process.env.AEO_MAX_EXA_PROMPTS ?? "1", 10);
   const limit = Number.isFinite(configured) ? Math.min(Math.max(configured, 1), topic.prompts.length) : 1;

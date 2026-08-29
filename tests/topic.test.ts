@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defaultAeoTargetUrl, promptLimit, seoVsAeoTopic } from "../src/lib/topic";
+import { defaultAeoTargetUrl, experimentRunKey, knownTopics, promptLimit, seoVsAeoTopic, topicForKey } from "../src/lib/topic";
 
 describe("topic contract", () => {
   it("defaults to the public portfolio answer page", () => {
@@ -20,5 +20,23 @@ describe("topic contract", () => {
     process.env.AEO_MAX_EXA_PROMPTS = "0";
     expect(promptLimit(seoVsAeoTopic)).toHaveLength(1);
     delete process.env.AEO_MAX_EXA_PROMPTS;
+  });
+
+  it("exposes only the three approved portfolio experiment topics", () => {
+    expect(knownTopics.map((topic) => topic.key)).toEqual([
+      "seo-vs-aeo-portfolio",
+      "self-improving-website",
+      "github-linear-slack-website-loop",
+    ]);
+    expect(topicForKey("self-improving-website").targetUrl).toContain("/insights/self-improving-website");
+    expect(topicForKey("unknown-topic")).toBeNull();
+  });
+
+  it("creates unique, auditable experiment run keys", () => {
+    const first = experimentRunKey("self-improving-website", "2026-08-29T08:00:00.000Z", "run-a");
+    const second = experimentRunKey("self-improving-website", "2026-08-29T08:00:00.000Z", "run-b");
+
+    expect(first).toBe("experiment:self-improving-website:2026-08-29T08:00:00.000Z:run-a");
+    expect(second).not.toBe(first);
   });
 });
