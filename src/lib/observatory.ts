@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { seoVsAeoTopic, type TopicDefinition } from "./topic";
+import { knownTopics, type TopicDefinition, topicForKey } from "./topic";
 import { dashboardClient } from "./supabase";
 
 export type RunRow = {
@@ -89,14 +89,12 @@ export type OverviewData = {
   latestObservationsError: string | null;
 };
 
-export const knownTopics: TopicDefinition[] = [seoVsAeoTopic];
-
 const runSelect = "id, run_key, run_type, status, started_at, created_at, completed_at, duration_ms, cost_usd, sources, agent_version, metadata, error_message";
 const findingSelect = "id, run_id, topic_key, kind, title, summary, recommendation, priority, status, evidence_ids, expected_impact, confidence, linear_issue_url, slack_delivery_status, created_at";
 const observationSelect = "id, run_id, topic_key, provider, observation_type, status, question, target_url, answer_text, mentioned, citation_found, citation_urls, citations, metrics, source_url, confidence, error_message, observed_at, created_at";
 
 export function topicDefinition(key: string): TopicDefinition {
-  const known = knownTopics.find((topic) => topic.key === key);
+  const known = topicForKey(key);
   return known ?? { key, question: key.replaceAll("-", " "), targetUrl: process.env.AEO_TARGET_URL ?? "", prompts: [] };
 }
 

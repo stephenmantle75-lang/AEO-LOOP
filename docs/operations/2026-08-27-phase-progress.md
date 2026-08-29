@@ -1,4 +1,4 @@
-# AEO LOOP phase progress — 28 August 2026 local checkpoint
+# AEO LOOP phase progress — 29 August 2026 local checkpoint
 
 This is the current implementation checkpoint after deferring the public/private
 Observatory boundary work.
@@ -40,6 +40,16 @@ Observatory boundary work.
   run, version, model, prompt, cost, status, source observation IDs, and
   evidence-linked findings. The migration is not applied and no runtime writes
   are enabled.
+- Phase 4 experiment slice: a protected manual experiment route now accepts
+  only the three approved portfolio topic keys, claims a unique
+  `experiment_retest` run, and reuses the bounded Firecrawl/Exa collection
+  path. The database claim migration serializes manual runs with the daily
+  run so tests cannot overlap or silently target arbitrary URLs.
+- Phase 4 guarded persistence slice: the deterministic, evidence-linked
+  analysis snapshot can now be persisted behind the disabled-by-default
+  `AEO_ANALYSIS_PERSISTENCE_ENABLED` flag. It records provenance and source
+  observation IDs but does not call a model, create findings, or trigger
+  external actions.
 - Phase 5 foundation: GitHub Actions quality gate, dependency review, CodeQL,
   Dependabot configuration, protected-main workflow, Vercel Git deployment,
   and local response-header hardening.
@@ -61,10 +71,11 @@ Observatory boundary work.
 - Slack and Zapier delivery.
 - Search Console and privacy-conscious human analytics adapters.
 - Persisted report/outbox/delivery tables and Slack/Zapier activation.
-- Durable analysis records, model-backed analysis-agent findings, human approval,
-  and experiment orchestration. The schema and payload contract now exist
-  locally, but persistence is still disabled until the migration and approval
-  policy are reviewed.
+- Model-backed analysis-agent findings, human approval, and experiment
+  orchestration remain deferred. The local durable analysis persistence path is
+  implemented but disabled until the migration is applied and its review policy
+  is approved. The manual experiment runner is collection-only and does not
+  create findings.
 - Portfolio redesign and public case-study proof.
 
 The experiment, integration, and architecture pages are explanatory control
@@ -88,3 +99,11 @@ model-backed analysis is active.
 7. Use the protected GitHub PR path for any push, then verify the Vercel
    preview, production deployment, and follow-up observation before treating a
    site change as an experiment result.
+
+## New manual-run gate
+
+Before using `/api/runs/experiment`, Stephen must apply the additive claim
+migration in `supabase/migrations/20260829120000_add_experiment_run_claim.sql`
+and deploy the branch through the normal GitHub/Vercel review path. The first
+manual run should use `self-improving-website` or
+`github-linear-slack-website-loop`; the SEO/AEO topic remains the control.
