@@ -1,13 +1,26 @@
 import { getServerEnv } from "./env";
 import { scrapeTargetPage, searchWithExa, type PageObservation } from "./collectors";
-import { completeRun, insertObservation, claimDailyRun, claimExperimentRun, type ClaimResult } from "./runs";
+import { completeRun, insertObservation, claimDailyRun, claimExperimentRun, startRunHeartbeat, touchRunHeartbeat, type ClaimResult } from "./runs";
 import { experimentRunKey, promptLimit, seoVsAeoTopic, topicForKey, type TopicDefinition } from "./topic";
 import { createServiceClient } from "./supabase";
 import { persistClosedRunReport } from "./reporting-persistence";
 import { persistClosedRunAnalysis } from "./analysis-persistence";
+import { reportingDateKey } from "./reporting-clock";
+import { isMonthlyBudgetExhausted, utcMonthWindow } from "./budget";
 
-function dateKey(): string {
-  return new Date().toISOString().slice(0, 10);
+async function monthlySpendUsd(client: ReturnType<typeof createServiceClient>, date: Date): Promise<number> {
+  const window = utcMonthWindow(date);
+  const { data, error } = await client
+    .from("runs")
+    .select("cost_usd")
+    .gte("started_at", window.start)
+    .lt("started_at", window.end);
+  if (error) throw new Error(`Could not read monthly provider spend: ${error.message}`);
+
+  return (data ?? []).reduce((total, row) => {
+    const cost = Number((row as { cost_usd?: unknown }).cost_usd);
+    return Number.isFinite(cost) && cost >= 0 ? total + cost : total;
+  }, 0);
 }
 
 function observationRow(runId: string, topic: TopicDefinition, provider: string, observationType: string, question: string, result: PageObservation) {
@@ -65,14 +78,31 @@ async function runTopicObservation(config: CollectionConfig): Promise<Collection
   const startedAt = Date.now();
   const sources = ["firecrawl", "exa"];
   const prompts = promptLimit(config.topic);
-  const claim = await config.claim(client, config.runKey, sources, { topicKey: config.topic.key, promptLimit: prompts.length, targetUrl: config.topic.targetUrl });
+  const claim = await config.claim(client, config.runKey, sources, {
+    topicKey: config.topic.key,
+    promptLimit: prompts.length,
+    targetUrl: config.topic.targetUrl,
+    reportingTimeZone: env.reportingTimeZone,
+    reportingDate: reportingDateKey(new Date(), env.reportingTimeZone),
+    monthlyProviderBudgetUsd: env.monthlyProviderBudgetUsd ?? null,
+  });
   if (!claim.claimed || !claim.run) return { runId: claim.run?.id ?? "", runType: config.runType, topicKey: config.topic.key, status: "not_started", observations: 0, reason: claim.reason };
 
   const runId = claim.run.id;
   let observations = 0;
   let failures = 0;
   let costUsd = 0;
+  await touchRunHeartbeat(client, runId);
+  const stopHeartbeat = startRunHeartbeat(client, runId);
   try {
+    if (env.monthlyProviderBudgetUsd !== undefined) {
+      const spendUsd = await monthlySpendUsd(client, new Date());
+      if (isMonthlyBudgetExhausted(spendUsd, env.monthlyProviderBudgetUsd)) {
+        await completeRun(client, runId, "failed", startedAt, sources, 0, "Monthly provider budget exhausted before collection started");
+        return { runId, runType: config.runType, topicKey: config.topic.key, status: "failed", observations: 0, reason: "monthly_provider_budget_exhausted" };
+      }
+    }
+
     const pageResult = await scrapeTargetPage(config.topic.targetUrl);
     await insertObservation(client, observationRow(runId, config.topic, "firecrawl", "page_fetch", config.topic.question, pageResult));
     observations += 1;
@@ -111,13 +141,16 @@ async function runTopicObservation(config: CollectionConfig): Promise<Collection
   } catch (error) {
     await completeRun(client, runId, "failed", startedAt, sources, costUsd, error instanceof Error ? error.message : "Unknown collection error");
     throw error;
+  } finally {
+    await stopHeartbeat();
   }
 }
 
 export async function runDailyObservation(): Promise<CollectionResult> {
+  const env = getServerEnv();
   return runTopicObservation({
     topic: seoVsAeoTopic,
-    runKey: `daily-observation:${dateKey()}`,
+    runKey: `daily-observation:${reportingDateKey(new Date(), env.reportingTimeZone)}`,
     runType: "daily_observation",
     claim: claimDailyRun,
   });

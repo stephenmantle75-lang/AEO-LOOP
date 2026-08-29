@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ObservatoryPage() {
   const result = await getOverviewData();
-  const { runs, findings, observationCount, observationCountError, latestObservations, latestObservationsError } = result.data;
+  const { runs, findings, runningRunCount, staleRunCount, observationCount, observationCountError, latestObservations, latestObservationsError } = result.data;
   const latest = runs[0];
   const rate = citationRate(latestObservations);
   const openFindings = findings.filter((finding) => finding.status === "new").length;
@@ -23,6 +23,11 @@ export default async function ObservatoryPage() {
       <div className="card"><div className="card-label">Citation rate</div><div className="metric">{rate === null ? "—" : `${rate}%`}</div><div className="metric-note">{rate === null ? "Awaiting Exa evidence" : `${latestObservations.filter((item) => item.provider === "exa" && item.status === "observed" && item.citation_found).length} cited checks in latest run`}</div></div>
       <div className="card"><div className="card-label">Evidence captured</div><div className="metric">{observationCount === null ? "—" : observationCount}</div><div className="metric-note">{observationCount === null ? "count temporarily unavailable" : "observations stored in Supabase"}</div></div>
       <div className="card"><div className="card-label">Open findings</div><div className="metric">{openFindings}</div><div className="metric-note">human review required</div></div>
+    </section>
+
+    <section className="panel monitoring-panel" aria-label="Run monitoring snapshot">
+      <div className="panel-head"><span className="panel-title">Run monitoring</span><span className={`provider-state ${staleRunCount ? "failed" : "observed"}`}><span className={`dot ${staleRunCount ? "failed" : "success"}`} />{staleRunCount ? `${staleRunCount} stale` : "No stale runs"}</span></div>
+      <div className="monitoring-body"><div><strong>{runningRunCount}</strong><span>active runs</span></div><div><strong>{staleRunCount}</strong><span>stale heartbeats</span></div><p>This is a page-load snapshot of running records. A stale heartbeat means a running job has not reported within 45 seconds; investigate the run detail and provider logs before retrying.</p></div>
     </section>
 
     <section className="content-grid">

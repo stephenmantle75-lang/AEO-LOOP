@@ -45,6 +45,12 @@ td small { display: block; max-width: 330px; overflow: hidden; color: var(--mute
 .result-muted { color: var(--muted); }
 .result-error { display: block; max-width: 260px; overflow: hidden; color: #b34040; text-overflow: ellipsis; white-space: normal; }
 .evidence-panel { margin-top: 18px; }
+.monitoring-panel { margin-top: 18px; }
+.monitoring-body { align-items: center; display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(110px, 150px)) 1fr; padding: 18px 20px; }
+.monitoring-body strong, .monitoring-body span { display: block; }
+.monitoring-body strong { font-size: 25px; letter-spacing: -.05em; }
+.monitoring-body span { color: var(--muted); font-size: 11px; margin-top: 3px; }
+.monitoring-body p { color: #40516a; font-size: 12px; line-height: 1.5; margin: 0; max-width: 660px; }
 .run-key { font-size: 16px; font-weight: 800; letter-spacing: -.02em; }
 .run-meta { display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--muted); font-size: 12px; margin-top: 9px; }
 .source-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 17px; }
@@ -62,6 +68,14 @@ td small { display: block; max-width: 330px; overflow: hidden; color: var(--mute
 .empty { padding: 32px 20px 38px; color: var(--muted); font-size: 13px; line-height: 1.6; }
 .empty strong { display: block; color: var(--ink); font-size: 15px; margin-bottom: 4px; }
 .run-status { display: inline-flex; align-items: center; gap: 6px; }
+.heartbeat-indicator { align-items: center; display: inline-flex; gap: 6px; }
+.heartbeat-indicator.live { color: var(--green) !important; }
+.heartbeat-indicator.stale { color: #b34040 !important; }
+.heartbeat-indicator.awaiting { color: #9b5e1f !important; }
+.heartbeat-dot { background: #b8c3d1; border-radius: 50%; display: inline-block; height: 7px; width: 7px; }
+.heartbeat-indicator.live .heartbeat-dot { background: var(--green); }
+.heartbeat-indicator.stale .heartbeat-dot { background: #d64545; }
+.heartbeat-indicator.awaiting .heartbeat-dot { background: var(--orange); }
 .dot { width: 7px; height: 7px; border-radius: 50%; background: #b8c3d1; }
 .dot.success { background: var(--green); } .dot.partial { background: var(--orange); } .dot.failed { background: #d64545; }
 .topic-list { padding: 6px 20px 20px; }
@@ -155,7 +169,7 @@ td small { display: block; max-width: 330px; overflow: hidden; color: var(--mute
 .review-links a:hover { text-decoration: underline; }
 .review-links span { color: var(--muted); font-weight: 400; }
 @media (max-width: 1000px) { .cards { grid-template-columns: repeat(2, 1fr); } .content-grid { grid-template-columns: 1fr; } .flow { grid-template-columns: repeat(4, minmax(0, 1fr)); } .metadata-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 700px) { .shell { display: block; } .sidebar { display: none; } .main { padding: 22px 16px 40px; } .topbar { gap: 12px; } .status-pill { display: none; } .page-actions { align-items: flex-start; } .flow { grid-template-columns: 1fr; } .arrow { transform: rotate(90deg); } .cards { grid-template-columns: 1fr; } .detail-grid, .metadata-grid { grid-template-columns: 1fr; padding: 16px; } .evidence-heading { display: grid; } .topic-row-link:hover { margin-left: -16px; margin-right: -16px; padding-left: 16px; padding-right: 16px; } .integration-grid { grid-template-columns: 1fr; padding: 16px; } .architecture-hero { padding: 22px; } .layer-grid { grid-template-columns: repeat(5, 190px); } }
+@media (max-width: 700px) { .shell { display: block; } .sidebar { display: none; } .main { padding: 22px 16px 40px; } .topbar { gap: 12px; } .status-pill { display: none; } .page-actions { align-items: flex-start; } .flow { grid-template-columns: 1fr; } .arrow { transform: rotate(90deg); } .cards { grid-template-columns: 1fr; } .detail-grid, .metadata-grid { grid-template-columns: 1fr; padding: 16px; } .evidence-heading { display: grid; } .topic-row-link:hover { margin-left: -16px; margin-right: -16px; padding-left: 16px; padding-right: 16px; } .integration-grid { grid-template-columns: 1fr; padding: 16px; } .architecture-hero { padding: 22px; } .layer-grid { grid-template-columns: repeat(5, 190px); } .monitoring-body { align-items: start; grid-template-columns: repeat(2, minmax(0, 1fr)); } .monitoring-body p { grid-column: 1 / -1; } }
 
 .answer-shell { min-height: 100vh; padding: 56px 20px 72px; background: #f6f8fb; }
 .answer-article, .insights-index { width: min(760px, 100%); margin: 0 auto; }

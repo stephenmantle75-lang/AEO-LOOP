@@ -53,6 +53,43 @@ Observatory boundary work.
 - Phase 4 preview slice: a protected `POST /api/analysis/preview` route can
   read one stored run and return the deterministic, evidence-linked draft
   analysis without writing `analyses`, calling a model, or delivering work.
+- Phase 4 dashboard traceability slice: the run-detail page now shows the same
+  draft-only analysis directly beneath the provider evidence, including rule
+  and prompt provenance, confidence, recommendations, and links back to each
+  source observation. Persisted findings remain a separate section so an empty
+  findings table cannot be mistaken for a failed collection run.
+- Security boundary slice: protected cron, experiment, and analysis-preview
+  routes now return stable generic 5xx messages and `no-store` responses while
+  server logging records only safe error classification. Detailed provider and
+  database errors remain private to the server-side run/error records.
+- Provider input boundary slice: Firecrawl and Exa citation links now pass
+  through an HTTPS-only sanitizer before they become stored citation URLs or
+  rendered links. URLs with unsafe schemes, embedded credentials, malformed
+  values, or excessive length are dropped and counted in provider metrics.
+- Reporting boundary slice: daily run keys and claim metadata now use an
+  explicit, validated reporting timezone. This keeps the calendar date
+  reproducible when the Vercel runtime executes in UTC while the operator works
+  in Europe/Dublin; the timezone defaults safely to UTC and is not changed in
+  production by this local checkpoint.
+- Provider reliability slice: Firecrawl and Exa now retry one transient HTTP,
+  timeout, or network failure with a bounded backoff. Each provider observation
+  records `attempts` and `retryCount`, while permanent HTTP failures are returned
+  immediately and remain visible as provider failures.
+- Budget guard slice: an optional `AEO_MONTHLY_PROVIDER_BUDGET_USD` hard stop
+  now checks completed run spend for the current UTC calendar month before any
+  provider call. If the cap is reached, the claimed run is closed as a visible
+  failure with zero observations; the control stays disabled when the variable
+  is blank and no production variable was changed here.
+- Heartbeat slice: running records now carry `heartbeat_at`, refreshed before
+  collection and every 15 seconds while providers are executing, then stamped
+  again at close. The run-detail surface exposes the last heartbeat, and the
+  migration adds an index for stale-run monitoring. Run detail labels a running
+  job as live, awaiting, or stale after 45 seconds without a heartbeat; the
+  migration has not been applied to production in this local phase.
+- Overview monitoring slice: the Observatory overview now queries active runs,
+  counts stale heartbeats, and shows a clearly labelled page-load monitoring
+  snapshot. This is an operator visibility surface, not a real-time alert
+  channel; stale records still require run-detail and provider-log review.
 - Phase 5 foundation: GitHub Actions quality gate, dependency review, CodeQL,
   Dependabot configuration, protected-main workflow, Vercel Git deployment,
   and local response-header hardening.

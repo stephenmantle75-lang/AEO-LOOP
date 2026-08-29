@@ -8,6 +8,7 @@ export type RunRow = {
   run_type: string;
   status: string;
   started_at: string;
+  heartbeat_at: string | null;
   created_at: string;
   completed_at: string | null;
   duration_ms: number | null;
@@ -79,17 +80,20 @@ export type TopicSummary = {
 };
 
 export type ObservatoryResult<T> = { connected: true; data: T } | { connected: false; data: T };
+export type HeartbeatState = { state: "live" | "stale" | "awaiting" | "closed"; label: string };
 
 export type OverviewData = {
   runs: RunRow[];
   findings: FindingRow[];
+  runningRunCount: number;
+  staleRunCount: number;
   observationCount: number | null;
   observationCountError: string | null;
   latestObservations: ObservationRow[];
   latestObservationsError: string | null;
 };
 
-const runSelect = "id, run_key, run_type, status, started_at, created_at, completed_at, duration_ms, cost_usd, sources, agent_version, metadata, error_message";
+const runSelect = "id, run_key, run_type, status, started_at, heartbeat_at, created_at, completed_at, duration_ms, cost_usd, sources, agent_version, metadata, error_message";
 const findingSelect = "id, run_id, topic_key, kind, title, summary, recommendation, priority, status, evidence_ids, expected_impact, confidence, linear_issue_url, slack_delivery_status, created_at";
 const observationSelect = "id, run_id, topic_key, provider, observation_type, status, question, target_url, answer_text, mentioned, citation_found, citation_urls, citations, metrics, source_url, confidence, error_message, observed_at, created_at";
 
@@ -150,6 +154,23 @@ export function citationRate(observations: ObservationRow[]): number | null {
 
 export function statusLabel(value: string): string {
   return value.replaceAll("_", " ");
+}
+
+export function heartbeatState(status: string, heartbeatAt: string | null, now = Date.now(), staleAfterMs = 45_000): HeartbeatState {
+  if (status !== "running") return { state: "closed", label: heartbeatAt ? "Closed · last heartbeat recorded" : "Closed · no heartbeat recorded" };
+  if (!heartbeatAt) return { state: "awaiting", label: "Awaiting first heartbeat" };
+  const heartbeatTime = Date.parse(heartbeatAt);
+  return Number.isFinite(heartbeatTime) && now - heartbeatTime <= staleAfterMs
+    ? { state: "live", label: "Live · heartbeat is fresh" }
+    : { state: "stale", label: "Stale · no heartbeat in the last 45 seconds" };
+}
+
+export function staleRunCount(
+  runs: Array<Pick<RunRow, "status" | "heartbeat_at">>,
+  now = Date.now(),
+  staleAfterMs = 45_000,
+): number {
+  return runs.filter((run) => heartbeatState(run.status, run.heartbeat_at, now, staleAfterMs).state === "stale").length;
 }
 
 function configuredResult<T>(client: SupabaseClient | null, data: T): ObservatoryResult<T> {
@@ -267,20 +288,25 @@ export async function getOverviewData(): Promise<ObservatoryResult<OverviewData>
   const empty: OverviewData = {
     runs: [],
     findings: [],
+    runningRunCount: 0,
+    staleRunCount: 0,
     observationCount: null,
     observationCountError: null,
     latestObservations: [],
     latestObservationsError: null,
   };
   if (!client) return configuredResult(client, empty);
-  const [runsResult, findingsResult, observationsResult] = await Promise.all([
+  const [runsResult, findingsResult, observationsResult, activeRunsResult] = await Promise.all([
     client.from("runs").select(runSelect).order("created_at", { ascending: false }).limit(8),
     client.from("findings").select(findingSelect).order("created_at", { ascending: false }).limit(5),
     client.from("observations").select("id", { count: "exact", head: true }),
+    client.from("runs").select("status, heartbeat_at").eq("status", "running"),
   ]);
   if (runsResult.error) throw new Error(`Runs could not be loaded from Supabase: ${runsResult.error.message}`);
   if (findingsResult.error) throw new Error(`Findings could not be loaded from Supabase: ${findingsResult.error.message}`);
+  if (activeRunsResult.error) throw new Error(`Active runs could not be loaded from Supabase: ${activeRunsResult.error.message}`);
   const runs = (runsResult.data ?? []) as RunRow[];
+  const activeRuns = (activeRunsResult.data ?? []) as Array<Pick<RunRow, "status" | "heartbeat_at">>;
   const latestRun = runs[0];
   let latestObservations: ObservationRow[] = [];
   let latestObservationsError: string | null = null;
@@ -295,6 +321,8 @@ export async function getOverviewData(): Promise<ObservatoryResult<OverviewData>
   return configuredResult(client, {
     runs,
     findings: (findingsResult.data ?? []) as FindingRow[],
+    runningRunCount: activeRuns.length,
+    staleRunCount: staleRunCount(activeRuns),
     observationCount: observationsResult.error ? null : observationsResult.count ?? 0,
     observationCountError: observationsResult.error ? "Evidence count is temporarily unavailable." : null,
     latestObservations,
