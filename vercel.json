@@ -5,6 +5,10 @@
     {
       "path": "/api/cron/daily-observation",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/deliver-slack",
+      "schedule": "15 8 * * *"
     }
   ]
 }
