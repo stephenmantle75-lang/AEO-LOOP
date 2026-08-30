@@ -7,7 +7,7 @@ export default function ArchitecturePage() {
     { number: "02", name: "Sense", title: "Normalize what happened", copy: "Provider responses become comparable observation rows with status, timestamp, target, and evidence.", items: ["runs", "observations", "provider health", "cost"] },
     { number: "03", name: "Decide", title: "Pick the next move", copy: "Evidence-linked drafts identify a technical failure or citation gap without changing production.", items: ["findings", "confidence", "experiment contract", "human review"] },
     { number: "04", name: "Act", title: "Ship through a gate", copy: "An approved change becomes a GitHub PR, passes CI, receives a preview, and waits for release approval.", items: ["Linear", "GitHub", "CI", "Vercel Preview"] },
-    { number: "05", name: "Report", title: "Close the loop", copy: "The next run compares the same measurement slice. Slack will summarize the stored report after delivery is enabled.", items: ["daily pulse", "Slack", "retest", "public proof"] },
+    { number: "05", name: "Report", title: "Close the loop", copy: "The next run compares the same measurement slice. Slack summarizes the stored report once the delivery cron runs.", items: ["daily pulse", "Slack", "retest", "public proof"] },
   ];
 
   return <ObservatoryShell active="architecture">

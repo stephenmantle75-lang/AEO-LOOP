@@ -32,6 +32,8 @@ export default async function FindingDetailPage({ params }: Props) {
         <div><span className="detail-label">Topic</span><span>{finding.topic_key}</span></div>
         <div><span className="detail-label">Created</span><span>{formatDate(finding.created_at, true)}</span></div>
         <div><span className="detail-label">Source run</span>{run ? <Link className="detail-link" href={`/runs/${run.id}`}>{run.run_key}</Link> : <span className="muted">Unavailable</span>}</div>
+        <div><span className="detail-label">Linear issue</span>{finding.linear_issue_url ? <a className="detail-link" href={finding.linear_issue_url}>Open issue →</a> : <span className="muted">Not created</span>}</div>
+        <div><span className="detail-label">Slack delivery</span><span className="muted">{finding.slack_delivery_status ?? "Not queued"}</span></div>
       </div>
       <div className="draft-copy"><strong>Summary</strong><p>{finding.summary}</p><strong>Recommendation</strong><p>{finding.recommendation}</p></div>
       <div className="notice">Review-only boundary: this screen does not approve the finding, modify the portfolio, create a Linear issue, send Slack/Zapier, or deploy code.</div>
