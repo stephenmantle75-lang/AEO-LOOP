@@ -1,7 +1,7 @@
 import { getServerEnv } from "./env";
 import { scrapeTargetPage, searchWithExa, type PageObservation } from "./collectors";
 import { completeRun, insertObservation, claimDailyRun, claimExperimentRun, startRunHeartbeat, touchRunHeartbeat, type ClaimResult } from "./runs";
-import { experimentRunKey, promptLimit, seoVsAeoTopic, topicForKey, type TopicDefinition } from "./topic";
+import { dailyComparisonKey, experimentRunKey, promptLimit, seoVsAeoTopic, seoVsAeoVariantTopic, topicForKey, type TopicDefinition } from "./topic";
 import { createServiceClient } from "./supabase";
 import { persistClosedRunReport } from "./reporting-persistence";
 import { persistClosedRunAnalysis } from "./analysis-persistence";
@@ -68,6 +68,7 @@ type CollectionConfig = {
   topic: TopicDefinition;
   runKey: string;
   runType: CollectionResult["runType"];
+  comparisonKey?: string;
   claim: (client: ReturnType<typeof createServiceClient>, runKey: string, sources: string[], metadata: Record<string, unknown>) => Promise<ClaimResult>;
 };
 
@@ -82,6 +83,7 @@ async function runTopicObservation(config: CollectionConfig): Promise<Collection
     topicKey: config.topic.key,
     promptLimit: prompts.length,
     targetUrl: config.topic.targetUrl,
+    ...(config.comparisonKey ? { comparisonKey: config.comparisonKey } : {}),
     reportingTimeZone: env.reportingTimeZone,
     reportingDate: reportingDateKey(new Date(), env.reportingTimeZone),
     monthlyProviderBudgetUsd: env.monthlyProviderBudgetUsd ?? null,
@@ -166,4 +168,52 @@ export async function runExperimentObservation(topicKey: string): Promise<Collec
     runType: "experiment_retest",
     claim: claimExperimentRun,
   });
+}
+
+function notStartedResult(topicKey: string, reason: string): CollectionResult {
+  return {
+    runId: "",
+    runType: "experiment_retest",
+    topicKey,
+    status: "not_started",
+    observations: 0,
+    reason,
+  };
+}
+
+export type DailyComparisonResult = {
+  comparisonKey: string;
+  control: CollectionResult;
+  variant: CollectionResult;
+};
+
+export async function runDailyComparison(): Promise<DailyComparisonResult> {
+  const env = getServerEnv();
+  const dateKey = reportingDateKey(new Date(), env.reportingTimeZone);
+  const comparisonKey = dailyComparisonKey(dateKey);
+  const control = await runTopicObservation({
+    topic: seoVsAeoTopic,
+    runKey: `daily-observation:${dateKey}`,
+    runType: "daily_observation",
+    comparisonKey,
+    claim: claimDailyRun,
+  });
+
+  if (control.reason === "overlap") {
+    return {
+      comparisonKey,
+      control,
+      variant: notStartedResult(seoVsAeoVariantTopic.key, "control_run_overlap"),
+    };
+  }
+
+  const variant = await runTopicObservation({
+    topic: seoVsAeoVariantTopic,
+    runKey: experimentRunKey(seoVsAeoVariantTopic.key, dateKey, "daily-comparison"),
+    runType: "experiment_retest",
+    comparisonKey,
+    claim: claimExperimentRun,
+  });
+
+  return { comparisonKey, control, variant };
 }
