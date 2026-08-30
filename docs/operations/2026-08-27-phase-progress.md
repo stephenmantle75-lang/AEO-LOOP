@@ -94,6 +94,20 @@ Observatory boundary work.
   Dependabot configuration, protected-main workflow, Vercel Git deployment,
   and local response-header hardening.
 
+## 2026-08-30 approved-finding follow-up
+
+The approved finding from production run
+`d1fdfe48-7e90-4140-bf7f-4ebd78e63778` recommends a separately measurable
+answer-page variant. The local branches now register
+`seo-vs-aeo-portfolio-variant-b` with the same fixed prompt set as the control,
+and the portfolio worktree contains the answer-first, firsthand-proof, and FAQ
+refinement at `/insights/seo-vs-aeo-portfolio-variant-b`.
+
+This is a local experiment preparation step only. The control page remains
+unchanged, no portfolio push or deployment has been performed, and no fresh
+variant observation exists yet. The next gate is review, CI, deployment, then
+the same prompt set against control and variant with separate run IDs.
+
 ## Current local checkpoint
 
 - The feature branch has been reconciled with the latest `origin/main`.

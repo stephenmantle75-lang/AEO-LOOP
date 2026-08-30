@@ -47,7 +47,7 @@ The database contract is live and the first application vertical slice is now pr
 - a server-only Next.js/Vercel app shell with a real Supabase dashboard query;
 - a protected daily cron route at `/api/cron/daily-observation`;
 - a protected manual experiment route at `/api/runs/experiment` that accepts
-  only the three approved portfolio topic keys and writes unique
+  only the approved portfolio topic keys and writes unique
   `experiment_retest` runs;
 - one-topic Firecrawl page-integrity and bounded Exa citation collection;
 - idempotent daily run claims serialized by a Postgres advisory lock;

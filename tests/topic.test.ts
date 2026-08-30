@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defaultAeoTargetUrl, experimentRunKey, knownTopics, promptLimit, seoVsAeoTopic, topicForKey } from "../src/lib/topic";
+import { defaultAeoTargetUrl, defaultAeoVariantTargetUrl, experimentRunKey, knownTopics, promptLimit, seoVsAeoTopic, seoVsAeoVariantTopic, topicForKey } from "../src/lib/topic";
 
 describe("topic contract", () => {
   it("defaults to the public portfolio answer page", () => {
@@ -22,12 +22,19 @@ describe("topic contract", () => {
     delete process.env.AEO_MAX_EXA_PROMPTS;
   });
 
-  it("exposes only the three approved portfolio experiment topics", () => {
+  it("exposes only the approved portfolio experiment topics", () => {
     expect(knownTopics.map((topic) => topic.key)).toEqual([
       "seo-vs-aeo-portfolio",
+      "seo-vs-aeo-portfolio-variant-b",
       "self-improving-website",
       "github-linear-slack-website-loop",
     ]);
+    expect(defaultAeoVariantTargetUrl).toBe(
+      "https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio-variant-b",
+    );
+    expect(seoVsAeoVariantTopic.targetUrl).toBe(defaultAeoVariantTargetUrl);
+    expect(seoVsAeoVariantTopic.prompts).toEqual(seoVsAeoTopic.prompts);
+    expect(topicForKey("seo-vs-aeo-portfolio-variant-b")?.question).toBe(seoVsAeoTopic.question);
     const selfImprovingWebsite = topicForKey("self-improving-website");
     expect(selfImprovingWebsite).not.toBeNull();
     expect(selfImprovingWebsite?.targetUrl).toContain("/insights/self-improving-website");
