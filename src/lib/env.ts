@@ -13,7 +13,7 @@ export type ServerEnv = {
   analysisPersistenceEnabled: boolean;
   reportingTimeZone: string;
   monthlyProviderBudgetUsd?: number;
-  /** Mantle Reporter — the "Pulse" persona bot; posts the rich daily pulse. */
+  /** Pulse — posts the rich daily pulse. */
   slackReportBotToken?: string;
   /** Hermes — already posts the short alert-with-link pattern in #ci-alerts; posts finding alerts here too. */
   slackAlertBotToken?: string;

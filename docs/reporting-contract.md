@@ -248,7 +248,7 @@ reports, the same `finding_delivery_events` row for alerts — with status,
 existing `AEO_REPORT_PERSISTENCE_ENABLED` gate pattern:
 
 - `AEO_SLACK_DELIVERY_ENABLED=true`
-- `SLACK_REPORT_BOT_TOKEN` — Mantle Reporter's bot token, posts the daily pulse
+- `SLACK_REPORT_BOT_TOKEN` — Pulse's bot token, posts the daily pulse
 - `SLACK_ALERT_BOT_TOKEN` — Hermes's bot token, posts the short finding alerts
 - (`SLACK_AEO_CHANNEL` overrides the channel; defaults to `#aeo-growth-loop`)
 

@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 // ANT-58: drains report_outbox (daily pulse) and the slack rows of
 // finding_delivery_events (immediate alerts) into #aeo-growth-loop.
-// Two separate bot identities on purpose — Mantle Reporter posts the rich
+// Two separate bot identities on purpose — Pulse posts the rich
 // pulse, Hermes posts the short alerts, matching the personas already used
 // elsewhere. Each drain runs independently: whichever token is configured
 // goes live, the other stays a no-op until its token is set too.
