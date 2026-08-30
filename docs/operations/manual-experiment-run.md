@@ -166,3 +166,13 @@ flowchart LR
 
 This is the next ANT-36 testable slice: it proves the evidence-to-finding
 boundary on demand while the durable persistence flag remains disabled.
+
+## State-aware review output
+
+The deterministic analysis preview uses the run's comparison role when one is
+present. A control run recommends preserving the control until the paired
+comparison is reviewed. A Variant B run recommends comparing the pair and,
+when both remain uncited, reviewing authority and discovery gaps. It does not
+recommend creating Variant B again. Older persisted analysis snapshots retain
+their original versioned text; a new collection creates the state-aware
+version.
