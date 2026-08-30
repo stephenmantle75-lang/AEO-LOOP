@@ -83,6 +83,12 @@ deferred.
 See [docs/ci-cd-security.md](docs/ci-cd-security.md) for the CI/CD flow,
 required GitHub settings, and secret boundary.
 
+The cross-system operating model is documented in
+[docs/operations/control-plane.md](docs/operations/control-plane.md). It
+defines which system owns delivery status, code, runtime evidence, and durable
+project knowledge. The rationale is recorded in
+[ADR-0001](docs/decisions/0001-linear-notion-ownership.md).
+
 The manual experiment contract and operator sequence are documented in
 [docs/operations/manual-experiment-run.md](docs/operations/manual-experiment-run.md).
 Its Supabase claim migration must be applied before the deployed endpoint can

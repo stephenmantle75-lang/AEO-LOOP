@@ -42,6 +42,27 @@ records the report payload and delivery status; Slack presents a concise,
 linked view for the operator. See [reporting-contract.md](reporting-contract.md)
 for the KPI, funnel, image, and idempotency contract.
 
+## Operating knowledge boundary
+
+The project deliberately separates four kinds of truth:
+
+| Truth | Owner | Why |
+|---|---|---|
+| Delivery | Linear | Issues, phase status, blockers, dependencies, and accountability |
+| Code | GitHub | Branches, pull requests, CI, and review history |
+| Runtime | Supabase and Vercel | Stored evidence, deployment state, cron invocations, and logs |
+| Knowledge | Repository docs and private Notion control plane | Research, SOPs, templates, architecture, and decision rationale |
+
+The repository-level routine and data boundaries are documented in
+[operations/control-plane.md](operations/control-plane.md). The decision to
+keep Linear and Notion complementary rather than synchronised bidirectionally
+is recorded in
+[ADR-0001](decisions/0001-linear-notion-ownership.md).
+
+Private Notion pages may provide richer visual layouts and operating guidance,
+but they are not a runtime dependency. The application must remain operable
+from the repository, Supabase, Vercel, and Linear records.
+
 ## Review surfaces
 
 | Surface | Repository | Purpose |
