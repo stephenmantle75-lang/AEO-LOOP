@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dailyComparisonKey, defaultAeoTargetUrl, defaultAeoVariantTargetUrl, experimentRunKey, knownTopics, promptLimit, seoVsAeoTopic, seoVsAeoVariantTopic, topicForKey } from "../src/lib/topic";
+import { dailyComparisonKey, defaultAeoTargetUrl, defaultAeoVariantTargetUrl, experimentPromptLimit, experimentRunKey, knownTopics, promptLimit, seoVsAeoTopic, seoVsAeoVariantTopic, topicForKey } from "../src/lib/topic";
 
 describe("topic contract", () => {
   it("defaults to the public portfolio answer page", () => {
@@ -20,6 +20,20 @@ describe("topic contract", () => {
     process.env.AEO_MAX_EXA_PROMPTS = "0";
     expect(promptLimit(seoVsAeoTopic)).toHaveLength(1);
     delete process.env.AEO_MAX_EXA_PROMPTS;
+  });
+
+  it("uses the complete fixed prompt set for manual experiment runs by default", () => {
+    delete process.env.AEO_EXPERIMENT_MAX_EXA_PROMPTS;
+    expect(experimentPromptLimit(seoVsAeoTopic)).toHaveLength(10);
+    expect(experimentPromptLimit(seoVsAeoVariantTopic)).toEqual(experimentPromptLimit(seoVsAeoTopic));
+  });
+
+  it("bounds the manual experiment prompt override without changing the daily default", () => {
+    process.env.AEO_EXPERIMENT_MAX_EXA_PROMPTS = "2";
+    expect(experimentPromptLimit(seoVsAeoTopic)).toHaveLength(2);
+    delete process.env.AEO_EXPERIMENT_MAX_EXA_PROMPTS;
+    delete process.env.AEO_MAX_EXA_PROMPTS;
+    expect(promptLimit(seoVsAeoTopic)).toHaveLength(1);
   });
 
   it("exposes only the approved portfolio experiment topics", () => {

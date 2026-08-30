@@ -16,6 +16,8 @@ describe("daily comparison contract", () => {
     expect(collection).toContain('runType: "experiment_retest"');
     expect(collection).toContain("dailyComparisonKey");
     expect(collection).toContain("runPairedExperimentObservation");
+    expect(collection).toContain("experimentPromptLimit");
+    expect(collection).toContain("promptLimitOverride");
     expect(manualRoute).toContain("runPairedExperimentObservation");
     expect(manualRoute).toContain('runType: "paired_experiment"');
     expect(vercel).toContain('"path": "/api/cron/daily-observation"');

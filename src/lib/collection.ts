@@ -1,7 +1,7 @@
 import { getServerEnv } from "./env";
 import { scrapeTargetPage, searchWithExa, type PageObservation } from "./collectors";
 import { completeRun, insertObservation, claimDailyRun, claimExperimentRun, startRunHeartbeat, touchRunHeartbeat, type ClaimResult } from "./runs";
-import { dailyComparisonKey, experimentRunKey, promptLimit, seoVsAeoTopic, seoVsAeoVariantTopic, topicForKey, type TopicDefinition } from "./topic";
+import { dailyComparisonKey, experimentPromptLimit, experimentRunKey, promptLimit, seoVsAeoTopic, seoVsAeoVariantTopic, topicForKey, type TopicDefinition } from "./topic";
 import { createServiceClient } from "./supabase";
 import { persistClosedRunReport } from "./reporting-persistence";
 import { persistClosedRunAnalysis } from "./analysis-persistence";
@@ -70,6 +70,7 @@ type CollectionConfig = {
   runType: CollectionResult["runType"];
   comparisonKey?: string;
   comparisonRole?: "control" | "variant";
+  promptLimitOverride?: number;
   claim: (client: ReturnType<typeof createServiceClient>, runKey: string, sources: string[], metadata: Record<string, unknown>) => Promise<ClaimResult>;
 };
 
@@ -79,7 +80,7 @@ async function runTopicObservation(config: CollectionConfig): Promise<Collection
   const client = createServiceClient();
   const startedAt = Date.now();
   const sources = ["firecrawl", "exa"];
-  const prompts = promptLimit(config.topic);
+  const prompts = config.promptLimitOverride === undefined ? promptLimit(config.topic) : promptLimit(config.topic, config.promptLimitOverride);
   const claim = await config.claim(client, config.runKey, sources, {
     topicKey: config.topic.key,
     promptLimit: prompts.length,
@@ -195,6 +196,7 @@ type PairedComparisonConfig = {
   controlRunType: CollectionResult["runType"];
   controlClaim: CollectionConfig["claim"];
   variantRunKey: string;
+  promptLimitOverride?: number;
 };
 
 async function runPairedComparison(config: PairedComparisonConfig): Promise<DailyComparisonResult> {
@@ -204,6 +206,7 @@ async function runPairedComparison(config: PairedComparisonConfig): Promise<Dail
     runType: config.controlRunType,
     comparisonKey: config.comparisonKey,
     comparisonRole: "control",
+    promptLimitOverride: config.promptLimitOverride,
     claim: config.controlClaim,
   });
 
@@ -221,6 +224,7 @@ async function runPairedComparison(config: PairedComparisonConfig): Promise<Dail
     runType: "experiment_retest",
     comparisonKey: config.comparisonKey,
     comparisonRole: "variant",
+    promptLimitOverride: config.promptLimitOverride,
     claim: claimExperimentRun,
   });
 
@@ -249,5 +253,6 @@ export async function runPairedExperimentObservation(): Promise<DailyComparisonR
     controlRunType: "experiment_retest",
     controlClaim: claimExperimentRun,
     variantRunKey: experimentRunKey(seoVsAeoVariantTopic.key, startedAt, `${nonce}:variant`),
+    promptLimitOverride: experimentPromptLimit(seoVsAeoTopic).length,
   });
 }

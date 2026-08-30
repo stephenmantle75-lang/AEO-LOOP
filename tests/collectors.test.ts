@@ -1,7 +1,14 @@
-import { describe, expect, it } from "vitest";
-import { isRetryableProviderStatus, sanitizeCitationUrl, sanitizeCitations } from "../src/lib/collectors";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { isRetryableProviderStatus, sanitizeCitationUrl, sanitizeCitations, searchWithExa } from "../src/lib/collectors";
 
 describe("provider citation boundaries", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    delete process.env.EXA_API_KEY;
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+  });
+
   it("accepts HTTPS URLs and normalizes surrounding whitespace", () => {
     expect(sanitizeCitationUrl("  https://example.com/source  ")).toBe("https://example.com/source");
   });
@@ -28,5 +35,27 @@ describe("provider citation boundaries", () => {
     expect(isRetryableProviderStatus(503)).toBe(true);
     expect(isRetryableProviderStatus(400)).toBe(false);
     expect(isRetryableProviderStatus(404)).toBe(false);
+  });
+
+  it("records the matched search result position for a target URL", async () => {
+    process.env.EXA_API_KEY = "test-key";
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://supabase.example.test";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-test-key";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      requestId: "exa-test-request",
+      results: [
+        { url: "https://example.com/other", title: "Other result", highlights: [] },
+        { url: "https://example.com/target", title: "Target result", highlights: ["Target highlight"] },
+      ],
+    }), { status: 200, headers: { "Content-Type": "application/json" } })));
+
+    const result = await searchWithExa("test prompt", "https://example.com/target");
+
+    expect(result.metrics).toMatchObject({
+      citationFound: true,
+      targetResultPosition: 2,
+      targetResultTitle: "Target result",
+      retrieval: "exa_search_result",
+    });
   });
 });
