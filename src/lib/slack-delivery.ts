@@ -84,6 +84,10 @@ export async function deliverQueuedReports(
           { report_id: row.report_id, outbox_id: row.id, event_id: row.event_id, channel: "slack", status: "failed", last_error: result.error },
           { onConflict: "event_id,channel" },
         );
+      // Slack's error codes (invalid_auth, not_in_channel, ...) are short, safe enum
+      // strings — fine to log directly, unlike the DB errors above which go through
+      // logServerError to keep provider/schema details out of logs.
+      console.error("Slack report send failed", { outboxId: row.id, error: result.error });
       summary.failed += 1;
     }
   }
@@ -134,6 +138,7 @@ export async function deliverQueuedFindingAlerts(
         .from("finding_delivery_events")
         .update({ status: "failed", last_error: result.error, attempt_count: row.attempt_count + 1 })
         .eq("id", row.id);
+      console.error("Slack finding alert send failed", { rowId: row.id, error: result.error });
       summary.failed += 1;
     }
   }
