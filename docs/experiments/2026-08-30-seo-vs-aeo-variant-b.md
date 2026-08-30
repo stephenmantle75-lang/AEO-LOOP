@@ -16,7 +16,7 @@ observability results.
 | Control target | `https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio` |
 | Variant target | `https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio-variant-b` |
 | Same prompt set | Yes |
-| Current state | Paired retest ready; production collection pending |
+| Current state | Paired retest live; expanded manual measurement ready |
 
 ## Hypothesis
 
@@ -44,8 +44,10 @@ unpublished performance claims are rendered on the public page.
 - [x] Review the local page and source links.
 - [x] Run portfolio CI and create a human-reviewed PR.
 - [x] Deploy the variant to its intended production URL.
-- [ ] Confirm the deployed URL and commit before collection.
-- [ ] Run the same fixed prompt set against control and variant through the paired daily route.
+- [x] Confirm the deployed URL and commit before collection.
+- [x] Run the same fixed prompt set against control and variant through the paired route.
+- [x] Keep the scheduled daily route bounded while allowing full-prompt manual batches.
+- [x] Store Exa target result position and result-count diagnostics per query.
 - [ ] Compare citation outcome, inspectability, evidence quality, and human usefulness.
 - [ ] Record the result and decision in Linear and Notion.
 

@@ -116,6 +116,7 @@ td small { display: block; max-width: 330px; overflow: hidden; color: var(--mute
 .evidence-result { border-top: 1px solid #f0f3f7; color: #40516a; font-size: 13px; line-height: 1.55; margin-top: 16px; padding-top: 14px; }
 .evidence-result strong { color: var(--ink); }
 .evidence-result p { margin: 8px 0 0; max-width: 880px; white-space: pre-wrap; }
+.evidence-diagnostic { color: var(--muted); font-size: 11px; font-weight: 700; }
 .citation-list { display: grid; gap: 6px; margin-top: 14px; }
 .citation-list a { color: var(--blue); font-size: 12px; overflow-wrap: anywhere; text-decoration: none; }
 .error-notice { color: #9b3d3d; }
