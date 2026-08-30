@@ -205,6 +205,49 @@ export async function getRunDetail(id: string): Promise<ObservatoryResult<{ run:
   });
 }
 
+export type ReportDeliveryStatus = {
+  reportId: string | null;
+  status: "queued" | "processing" | "sent" | "failed" | "cancelled" | null;
+  deliveredAt: string | null;
+  lastError: string | null;
+};
+
+/** Real delivery status for one run's report — report_outbox.status IS the delivery
+ *  status (the drain writes it back after every Slack attempt), so this is a plain
+ *  read rather than a re-derivation. `status: null` means no report/outbox row exists
+ *  yet, distinct from a report that's queued but not yet sent. */
+export async function getReportDeliveryStatus(runId: string): Promise<ReportDeliveryStatus> {
+  const empty: ReportDeliveryStatus = { reportId: null, status: null, deliveredAt: null, lastError: null };
+  const client = dashboardClient();
+  if (!client) return empty;
+
+  const { data: report, error: reportError } = await client.from("reports").select("id").eq("run_id", runId).maybeSingle();
+  if (reportError) throw new Error(`Report record could not be loaded from Supabase: ${reportError.message}`);
+  if (!report) return empty;
+
+  const { data: outbox, error: outboxError } = await client
+    .from("report_outbox")
+    .select("status, delivered_at, last_error")
+    .eq("report_id", report.id)
+    .maybeSingle();
+  if (outboxError) throw new Error(`Report delivery status could not be loaded from Supabase: ${outboxError.message}`);
+  if (!outbox) return { ...empty, reportId: report.id };
+
+  return { reportId: report.id, status: outbox.status as ReportDeliveryStatus["status"], deliveredAt: outbox.delivered_at, lastError: outbox.last_error };
+}
+
+/** Maps a delivery status onto the existing provider-state/dot color tones so no new CSS is needed. */
+export function deliveryStatusTone(status: ReportDeliveryStatus["status"]): string {
+  if (status === "sent") return "observed";
+  if (status === "failed") return "failed";
+  if (status === "queued" || status === "processing") return "not-run";
+  return "";
+}
+
+export function deliveryStatusLabel(status: ReportDeliveryStatus["status"]): string {
+  return status ?? "not generated";
+}
+
 export async function getTopicObservations(key: string, limit = 100): Promise<ObservatoryResult<ObservationRow[]>> {
   const client = dashboardClient();
   if (!client) return configuredResult(client, []);
