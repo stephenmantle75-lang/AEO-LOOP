@@ -15,6 +15,16 @@ export type ServerEnv = {
   monthlyProviderBudgetUsd?: number;
 };
 
+export function getSupabaseAuthConfig(): { supabaseUrl: string; publishableKey: string } | null {
+  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !publishableKey) return null;
+  return { supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL, publishableKey };
+}
+
+export function reviewAuthEnabled(): boolean {
+  return process.env.AEO_REVIEW_AUTH_ENABLED === "true";
+}
+
 export function getServerEnv(): ServerEnv {
   const missing = required.filter((key) => !process.env[key]);
   if (missing.length > 0) {
