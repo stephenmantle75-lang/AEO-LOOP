@@ -29,10 +29,10 @@ export async function GET(request: Request) {
     const [reports, findingAlerts] = await Promise.all([
       env.slackReportBotToken
         ? deliverQueuedReports(client, { token: env.slackReportBotToken, channel, siteOrigin: env.siteOrigin })
-        : { sent: 0, failed: 0, skipped: 0, reason: "no_report_bot_token" },
+        : { sent: 0, failed: 0, skipped: 0, readError: false, reason: "no_report_bot_token" },
       env.slackAlertBotToken
         ? deliverQueuedFindingAlerts(client, { token: env.slackAlertBotToken, channel, siteOrigin: env.siteOrigin })
-        : { sent: 0, failed: 0, skipped: 0, reason: "no_alert_bot_token" },
+        : { sent: 0, failed: 0, skipped: 0, readError: false, reason: "no_alert_bot_token" },
     ]);
     return Response.json({ ok: true, reports, findingAlerts });
   } catch (error) {

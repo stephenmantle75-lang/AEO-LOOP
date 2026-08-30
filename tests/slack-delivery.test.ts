@@ -55,7 +55,7 @@ describe("deliverQueuedReports", () => {
     const outboxRow = { id: "outbox-1", report_id: "report-1", event_id: "daily-pulse:run-1", status: "queued", payload: report, attempt_count: 0 };
     const client = fakeClient({ report_outbox: { select: { data: [outboxRow], error: null }, update: [{ data: [{ id: "outbox-1" }], error: null }] } });
     const summary = await deliverQueuedReports(client, config);
-    expect(summary).toEqual({ sent: 1, failed: 0, skipped: 0 });
+    expect(summary).toEqual({ sent: 1, failed: 0, skipped: 0, readError: false });
   });
 
   it("a failed run still ships its (labeled-failed) pulse", async () => {
@@ -71,7 +71,7 @@ describe("deliverQueuedReports", () => {
     const outboxRow = { id: "outbox-3", report_id: "report-3", event_id: "daily-pulse:run-3", status: "queued", payload: report, attempt_count: 0 };
     const client = fakeClient({ report_outbox: { select: { data: [outboxRow], error: null }, update: [{ data: [{ id: "outbox-3" }], error: null }] } });
     const summary = await deliverQueuedReports(client, config);
-    expect(summary).toEqual({ sent: 0, failed: 1, skipped: 0 });
+    expect(summary).toEqual({ sent: 0, failed: 1, skipped: 0, readError: false });
   });
 
   it("skips a row another cron run already claimed instead of double-sending", async () => {
@@ -81,7 +81,7 @@ describe("deliverQueuedReports", () => {
     // the claim update() affects zero rows — another process already flipped status away from "queued"
     const client = fakeClient({ report_outbox: { select: { data: [outboxRow], error: null }, update: [{ data: [], error: null }] } });
     const summary = await deliverQueuedReports(client, config);
-    expect(summary).toEqual({ sent: 0, failed: 0, skipped: 1 });
+    expect(summary).toEqual({ sent: 0, failed: 0, skipped: 1, readError: false });
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
@@ -90,7 +90,16 @@ describe("deliverQueuedReports", () => {
     vi.stubGlobal("fetch", fetchSpy);
     const client = fakeClient({ report_outbox: { select: { data: [], error: null }, update: [{ error: null }] } });
     const summary = await deliverQueuedReports(client, config);
-    expect(summary).toEqual({ sent: 0, failed: 0, skipped: 0 });
+    expect(summary).toEqual({ sent: 0, failed: 0, skipped: 0, readError: false });
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("flags readError instead of silently returning zeros when the outbox read itself fails", async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    const client = fakeClient({ report_outbox: { select: { data: null, error: { message: "connection refused" } }, update: [{ error: null }] } });
+    const summary = await deliverQueuedReports(client, config);
+    expect(summary).toEqual({ sent: 0, failed: 0, skipped: 0, readError: true });
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
@@ -103,6 +112,15 @@ describe("deliverQueuedFindingAlerts", () => {
     const findingRow = { id: "fde-1", event_id: "finding.created:f-1", status: "queued", payload: { title: "Improve answer-page evidence", priority: "high", dashboardPath: "/findings/f-1" }, attempt_count: 0 };
     const client = fakeClient({ finding_delivery_events: { select: { data: [findingRow], error: null }, update: [{ data: [{ id: "fde-1" }], error: null }] } });
     const summary = await deliverQueuedFindingAlerts(client, config);
-    expect(summary).toEqual({ sent: 1, failed: 0, skipped: 0 });
+    expect(summary).toEqual({ sent: 1, failed: 0, skipped: 0, readError: false });
+  });
+
+  it("flags readError instead of silently returning zeros when the read itself fails", async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    const client = fakeClient({ finding_delivery_events: { select: { data: null, error: { message: "connection refused" } }, update: [{ error: null }] } });
+    const summary = await deliverQueuedFindingAlerts(client, config);
+    expect(summary).toEqual({ sent: 0, failed: 0, skipped: 0, readError: true });
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });

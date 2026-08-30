@@ -1,10 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DailyPulseReport } from "./reporting";
 import { formatDailyPulseMessage, formatFindingAlertText, postSlackMessage } from "./slack";
+import { logServerError } from "./api-response";
 
 export type SlackDeliveryConfig = { token: string; channel: string; siteOrigin: string };
 
-export type DeliverySummary = { sent: number; failed: number; skipped: number };
+/** readError is true when the initial Supabase read itself failed — distinct from a
+ *  genuinely empty queue, which is sent:0/failed:0/skipped:0/readError:false too but
+ *  for the opposite reason. Check readError before reading a zero summary as "nothing to do". */
+export type DeliverySummary = { sent: number; failed: number; skipped: number; readError: boolean };
 
 type OutboxRow = {
   id: string;
@@ -40,14 +44,17 @@ export async function deliverQueuedReports(
   config: SlackDeliveryConfig,
   limit = 5,
 ): Promise<DeliverySummary> {
-  const summary: DeliverySummary = { sent: 0, failed: 0, skipped: 0 };
+  const summary: DeliverySummary = { sent: 0, failed: 0, skipped: 0, readError: false };
   const { data: rows, error } = await client
     .from("report_outbox")
     .select("id, report_id, event_id, status, payload, attempt_count")
     .eq("status", "queued")
     .order("available_at", { ascending: true })
     .limit(limit);
-  if (error || !rows) return summary;
+  if (error || !rows) {
+    if (error) logServerError("report_outbox read failed", error);
+    return { ...summary, readError: true };
+  }
 
   for (const row of rows as OutboxRow[]) {
     if (!(await claimOutboxRow(client, row.id))) {
@@ -89,7 +96,7 @@ export async function deliverQueuedFindingAlerts(
   config: SlackDeliveryConfig,
   limit = 10,
 ): Promise<DeliverySummary> {
-  const summary: DeliverySummary = { sent: 0, failed: 0, skipped: 0 };
+  const summary: DeliverySummary = { sent: 0, failed: 0, skipped: 0, readError: false };
   const { data: rows, error } = await client
     .from("finding_delivery_events")
     .select("id, event_id, status, payload, attempt_count")
@@ -97,7 +104,10 @@ export async function deliverQueuedFindingAlerts(
     .eq("status", "queued")
     .order("created_at", { ascending: true })
     .limit(limit);
-  if (error || !rows) return summary;
+  if (error || !rows) {
+    if (error) logServerError("finding_delivery_events read failed", error);
+    return { ...summary, readError: true };
+  }
 
   for (const row of rows as FindingAlertRow[]) {
     const { data: claimed } = await client
