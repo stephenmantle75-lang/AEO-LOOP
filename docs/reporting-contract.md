@@ -243,7 +243,11 @@ reports, the same `finding_delivery_events` row for alerts — with status,
 `external_id` (the Slack message ts), and `delivered_at`.
 
 `src/app/api/cron/deliver-slack/route.ts` runs both drains on the same
-`CRON_SECRET` bearer auth as the daily-observation cron. It is a no-op
+`CRON_SECRET` bearer auth as the daily-observation cron, and is itself
+scheduled in `vercel.json` at 08:15 UTC — 15 minutes after the 08:00
+daily-observation cron, so the day's report exists before delivery runs.
+(Before this, the route existed but nothing ever called it automatically —
+every send so far was a manual test hit.) It is a no-op
 (`202 slack_delivery_disabled`) until two things are set, matching the
 existing `AEO_REPORT_PERSISTENCE_ENABLED` gate pattern:
 
