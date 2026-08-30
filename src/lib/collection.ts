@@ -69,6 +69,7 @@ type CollectionConfig = {
   runKey: string;
   runType: CollectionResult["runType"];
   comparisonKey?: string;
+  comparisonRole?: "control" | "variant";
   claim: (client: ReturnType<typeof createServiceClient>, runKey: string, sources: string[], metadata: Record<string, unknown>) => Promise<ClaimResult>;
 };
 
@@ -84,6 +85,7 @@ async function runTopicObservation(config: CollectionConfig): Promise<Collection
     promptLimit: prompts.length,
     targetUrl: config.topic.targetUrl,
     ...(config.comparisonKey ? { comparisonKey: config.comparisonKey } : {}),
+    ...(config.comparisonRole ? { comparisonRole: config.comparisonRole } : {}),
     reportingTimeZone: env.reportingTimeZone,
     reportingDate: reportingDateKey(new Date(), env.reportingTimeZone),
     monthlyProviderBudgetUsd: env.monthlyProviderBudgetUsd ?? null,
@@ -187,21 +189,27 @@ export type DailyComparisonResult = {
   variant: CollectionResult;
 };
 
-export async function runDailyComparison(): Promise<DailyComparisonResult> {
-  const env = getServerEnv();
-  const dateKey = reportingDateKey(new Date(), env.reportingTimeZone);
-  const comparisonKey = dailyComparisonKey(dateKey);
+type PairedComparisonConfig = {
+  comparisonKey: string;
+  controlRunKey: string;
+  controlRunType: CollectionResult["runType"];
+  controlClaim: CollectionConfig["claim"];
+  variantRunKey: string;
+};
+
+async function runPairedComparison(config: PairedComparisonConfig): Promise<DailyComparisonResult> {
   const control = await runTopicObservation({
     topic: seoVsAeoTopic,
-    runKey: `daily-observation:${dateKey}`,
-    runType: "daily_observation",
-    comparisonKey,
-    claim: claimDailyRun,
+    runKey: config.controlRunKey,
+    runType: config.controlRunType,
+    comparisonKey: config.comparisonKey,
+    comparisonRole: "control",
+    claim: config.controlClaim,
   });
 
   if (control.reason === "overlap") {
     return {
-      comparisonKey,
+      comparisonKey: config.comparisonKey,
       control,
       variant: notStartedResult(seoVsAeoVariantTopic.key, "control_run_overlap"),
     };
@@ -209,11 +217,37 @@ export async function runDailyComparison(): Promise<DailyComparisonResult> {
 
   const variant = await runTopicObservation({
     topic: seoVsAeoVariantTopic,
-    runKey: experimentRunKey(seoVsAeoVariantTopic.key, dateKey, "daily-comparison"),
+    runKey: config.variantRunKey,
     runType: "experiment_retest",
-    comparisonKey,
+    comparisonKey: config.comparisonKey,
+    comparisonRole: "variant",
     claim: claimExperimentRun,
   });
 
-  return { comparisonKey, control, variant };
+  return { comparisonKey: config.comparisonKey, control, variant };
+}
+
+export async function runDailyComparison(): Promise<DailyComparisonResult> {
+  const env = getServerEnv();
+  const dateKey = reportingDateKey(new Date(), env.reportingTimeZone);
+  return runPairedComparison({
+    comparisonKey: dailyComparisonKey(dateKey),
+    controlRunKey: `daily-observation:${dateKey}`,
+    controlRunType: "daily_observation",
+    controlClaim: claimDailyRun,
+    variantRunKey: experimentRunKey(seoVsAeoVariantTopic.key, dateKey, "daily-comparison"),
+  });
+}
+
+export async function runPairedExperimentObservation(): Promise<DailyComparisonResult> {
+  const startedAt = new Date().toISOString();
+  const nonce = crypto.randomUUID();
+  const comparisonKey = `seo-vs-aeo:manual:${startedAt}:${nonce}`;
+  return runPairedComparison({
+    comparisonKey,
+    controlRunKey: experimentRunKey(seoVsAeoTopic.key, startedAt, `${nonce}:control`),
+    controlRunType: "experiment_retest",
+    controlClaim: claimExperimentRun,
+    variantRunKey: experimentRunKey(seoVsAeoVariantTopic.key, startedAt, `${nonce}:variant`),
+  });
 }

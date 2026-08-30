@@ -21,6 +21,27 @@ The runner accepts a topic key, not an arbitrary URL or prompt. This keeps
 manual tests inside the approved experiment set and prevents an operator or
 caller from turning the endpoint into an unrestricted proxy.
 
+For the SEO/AEO experiment, use the paired runner below. It collects the
+frozen control and Variant B sequentially, so several comparison batches can
+be run in one day without waiting for the daily cron. The original
+single-topic endpoint remains available for other approved topics.
+
+## Paired control / Variant B endpoint
+
+```text
+POST /api/runs/comparison
+Authorization: Bearer $CRON_SECRET
+```
+
+The endpoint accepts no body. It always runs the approved pair:
+
+- Control: `seo-vs-aeo-portfolio`
+- Variant: `seo-vs-aeo-portfolio-variant-b`
+
+Each pair uses two `experiment_retest` runs with separate IDs and a unique
+`comparisonKey`. The control and variant are executed sequentially because
+the database overlap guard allows only one active observation run at a time.
+
 ## Endpoint contract
 
 ```text
@@ -82,6 +103,17 @@ curl -X POST "$AEO_LOOP_URL/api/runs/experiment" \
   -H "Content-Type: application/json" \
   --data '{"topicKey":"self-improving-website"}'
 ```
+
+Run a paired comparison batch:
+
+```bash
+curl -X POST "$AEO_LOOP_URL/api/runs/comparison" \
+  -H "Authorization: Bearer $CRON_SECRET"
+```
+
+Repeat only after the previous response completes. Use the returned control
+and variant run IDs, plus the shared comparison key, when reviewing the
+results in the Observatory.
 
 The endpoint does not create Linear issues, send Slack/Zapier messages, edit
 portfolio files, or deploy code. Those remain separate human-approved phases.
