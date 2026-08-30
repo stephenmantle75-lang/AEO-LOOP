@@ -132,7 +132,7 @@ async function runTopicObservation(config: CollectionConfig): Promise<Collection
     if (!env.reportPersistenceEnabled) return { runId, runType: config.runType, topicKey: config.topic.key, status, observations, analysisStatus, reportStatus: "disabled" };
 
     try {
-      await persistClosedRunReport(client, runId, process.env.NEXT_PUBLIC_DASHBOARD_ORIGIN ?? "");
+      await persistClosedRunReport(client, runId, env.siteOrigin);
       return { runId, runType: config.runType, topicKey: config.topic.key, status, observations, analysisStatus, reportStatus: "queued" };
     } catch (reportError) {
       console.error("Daily report persistence failed after run close", reportError);
