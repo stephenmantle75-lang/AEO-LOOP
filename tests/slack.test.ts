@@ -38,6 +38,23 @@ describe("formatDailyPulseMessage", () => {
     const { blocks } = formatDailyPulseMessage(report);
     expect(JSON.stringify(blocks)).toContain("not measurable yet");
   });
+
+  it("drops the actions block instead of sending relative button URLs Slack would reject", () => {
+    // Production bug: a report built with an empty dashboardOrigin persists
+    // links like "/runs/run-1" instead of an absolute URL. Slack's
+    // chat.postMessage returns invalid_blocks for a relative button url and
+    // kills the whole message — this must never reach that call again.
+    const broken = { ...report, links: { dashboard: "/", run: "/runs/run-1", report: "/reports/run-1" } };
+    const { blocks } = formatDailyPulseMessage(broken);
+    expect(blocks.some((block) => block.type === "actions")).toBe(false);
+  });
+
+  it("keeps only the buttons with an absolute URL when links are partially broken", () => {
+    const mixed = { ...report, links: { ...report.links, run: "/runs/run-1" } };
+    const { blocks } = formatDailyPulseMessage(mixed);
+    const actions = blocks.find((block) => block.type === "actions") as { elements: { url: string }[] } | undefined;
+    expect(actions?.elements.map((element) => element.url)).toEqual([report.links.dashboard, report.links.report]);
+  });
 });
 
 describe("formatFindingAlertText", () => {

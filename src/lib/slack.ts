@@ -95,20 +95,23 @@ export function formatDailyPulseMessage(report: DailyPulseReport): { text: strin
     ? report.actions.map((action) => `• [${action.priority}] ${action.title}`).join("\n")
     : "_No open findings._";
 
+  // Slack rejects the whole message with invalid_blocks if a button's url
+  // isn't absolute — a relative link (seen in production when the report's
+  // site origin was misconfigured at generation time) would otherwise kill
+  // delivery entirely. Drop only the broken button(s) instead of the message.
+  const actionElements = [
+    { type: "button" as const, text: { type: "plain_text" as const, text: "Open dashboard" }, url: report.links.dashboard },
+    { type: "button" as const, text: { type: "plain_text" as const, text: "Open run" }, url: report.links.run },
+    { type: "button" as const, text: { type: "plain_text" as const, text: "Open report" }, url: report.links.report },
+  ].filter((button) => /^https?:\/\//.test(button.url));
+
   const blocks: SlackBlock[] = [
     { type: "header", text: { type: "plain_text", text: `${healthLabel(report.health)} AEO LOOP PULSE · ${dateKey}` } },
     { type: "section", text: { type: "mrkdwn", text: `*CORE SIGNALS*\n${kpiLines}` } },
     { type: "section", text: { type: "mrkdwn", text: `*FUNNEL*\n${funnelLine}` } },
     { type: "section", text: { type: "mrkdwn", text: leakText } },
     { type: "section", text: { type: "mrkdwn", text: `*NEXT DECISIONS*\n${actionLines}` } },
-    {
-      type: "actions",
-      elements: [
-        { type: "button", text: { type: "plain_text", text: "Open dashboard" }, url: report.links.dashboard },
-        { type: "button", text: { type: "plain_text", text: "Open run" }, url: report.links.run },
-        { type: "button", text: { type: "plain_text", text: "Open report" }, url: report.links.report },
-      ],
-    },
+    ...(actionElements.length ? [{ type: "actions", elements: actionElements }] : []),
   ];
 
   return { text, blocks };
