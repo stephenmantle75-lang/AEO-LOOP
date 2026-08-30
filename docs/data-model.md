@@ -24,6 +24,7 @@ Vercel Cron
   -> observations (normalized evidence and citations)
   -> findings (evidence-backed recommendations)
   -> human review in Observatory
+  -> finding delivery intents
   -> Linear / Zapier / Slack delivery
   -> approved GitHub change and site retest
 ```
@@ -70,6 +71,16 @@ The recommendation layer. Each finding points to the run that produced it and re
 
 Approved analysis candidates are copied into `findings` with `analysis_id` and
 `source_key`, preserving the exact draft candidate that became actionable.
+
+### `finding_delivery_events`
+
+An atomic handoff record created when an approved analysis inserts a new
+finding. It creates one queued event for each downstream channel (`linear`,
+`slack`, and `zapier`) with the stable event ID
+`finding.created:<finding-id>`. The `(finding_id, channel)` and
+`(event_id, channel)` constraints make approval retries safe. This table is an
+intent queue, not an external sender; adapter workers and callback handling are
+the remaining ANT-39 work.
 
 ### `analyses`
 
