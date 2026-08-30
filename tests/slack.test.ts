@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { formatDailyPulseMessage, formatFindingAlertText, postSlackMessage } from "../src/lib/slack";
+import { checkSlackAuth, formatDailyPulseMessage, formatFindingAlertText, postSlackMessage } from "../src/lib/slack";
 import type { DailyPulseReport } from "../src/lib/reporting";
 
 const report: DailyPulseReport = {
@@ -66,5 +66,21 @@ describe("postSlackMessage", () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("fetch failed")));
     const result = await postSlackMessage({ token: "xoxb-test", channel: "#aeo-growth-loop", text: "hi" });
     expect(result).toEqual({ ok: false, error: "fetch failed" });
+  });
+});
+
+describe("checkSlackAuth", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("reports the bot/team a valid token resolves to", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ status: 200, json: async () => ({ ok: true, team: "Mantle Studios", user: "pulse" }) }));
+    const result = await checkSlackAuth("xoxb-test");
+    expect(result).toEqual({ ok: true, team: "Mantle Studios", user: "pulse" });
+  });
+
+  it("surfaces Slack's own error code for a bad token without throwing", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ status: 200, json: async () => ({ ok: false, error: "invalid_auth" }) }));
+    const result = await checkSlackAuth("xoxb-bad");
+    expect(result).toEqual({ ok: false, error: "invalid_auth" });
   });
 });

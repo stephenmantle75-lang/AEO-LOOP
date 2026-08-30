@@ -48,14 +48,17 @@ function fakeClient(table: Record<string, { select: unknown; update: unknown[] }
 }
 
 describe("deliverQueuedReports", () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
 
   it("sends a queued report and marks the outbox row + delivery event sent", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ status: 200, json: async () => ({ ok: true, ts: "111.1" }) }));
     const outboxRow = { id: "outbox-1", report_id: "report-1", event_id: "daily-pulse:run-1", status: "queued", payload: report, attempt_count: 0 };
     const client = fakeClient({ report_outbox: { select: { data: [outboxRow], error: null }, update: [{ data: [{ id: "outbox-1" }], error: null }] } });
     const summary = await deliverQueuedReports(client, config);
-    expect(summary).toEqual({ sent: 1, failed: 0, skipped: 0 });
+    expect(summary).toEqual({ sent: 1, failed: 0, skipped: 0, readError: false });
   });
 
   it("a failed run still ships its (labeled-failed) pulse", async () => {
@@ -67,11 +70,13 @@ describe("deliverQueuedReports", () => {
   });
 
   it("records a Slack-side send failure without throwing", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ status: 200, json: async () => ({ ok: false, error: "channel_not_found" }) }));
     const outboxRow = { id: "outbox-3", report_id: "report-3", event_id: "daily-pulse:run-3", status: "queued", payload: report, attempt_count: 0 };
     const client = fakeClient({ report_outbox: { select: { data: [outboxRow], error: null }, update: [{ data: [{ id: "outbox-3" }], error: null }] } });
     const summary = await deliverQueuedReports(client, config);
-    expect(summary).toEqual({ sent: 0, failed: 1, skipped: 0 });
+    expect(summary).toEqual({ sent: 0, failed: 1, skipped: 0, readError: false });
+    expect(consoleError).toHaveBeenCalledWith("Slack report send failed", { outboxId: "outbox-3", error: "channel_not_found" });
   });
 
   it("skips a row another cron run already claimed instead of double-sending", async () => {
@@ -81,7 +86,7 @@ describe("deliverQueuedReports", () => {
     // the claim update() affects zero rows — another process already flipped status away from "queued"
     const client = fakeClient({ report_outbox: { select: { data: [outboxRow], error: null }, update: [{ data: [], error: null }] } });
     const summary = await deliverQueuedReports(client, config);
-    expect(summary).toEqual({ sent: 0, failed: 0, skipped: 1 });
+    expect(summary).toEqual({ sent: 0, failed: 0, skipped: 1, readError: false });
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
@@ -90,19 +95,50 @@ describe("deliverQueuedReports", () => {
     vi.stubGlobal("fetch", fetchSpy);
     const client = fakeClient({ report_outbox: { select: { data: [], error: null }, update: [{ error: null }] } });
     const summary = await deliverQueuedReports(client, config);
-    expect(summary).toEqual({ sent: 0, failed: 0, skipped: 0 });
+    expect(summary).toEqual({ sent: 0, failed: 0, skipped: 0, readError: false });
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("flags readError instead of silently returning zeros when the outbox read itself fails", async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    const client = fakeClient({ report_outbox: { select: { data: null, error: { message: "connection refused" } }, update: [{ error: null }] } });
+    const summary = await deliverQueuedReports(client, config);
+    expect(summary).toEqual({ sent: 0, failed: 0, skipped: 0, readError: true });
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
 
 describe("deliverQueuedFindingAlerts", () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
 
   it("sends a short alert per queued finding and marks it sent", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ status: 200, json: async () => ({ ok: true, ts: "222.1" }) }));
     const findingRow = { id: "fde-1", event_id: "finding.created:f-1", status: "queued", payload: { title: "Improve answer-page evidence", priority: "high", dashboardPath: "/findings/f-1" }, attempt_count: 0 };
     const client = fakeClient({ finding_delivery_events: { select: { data: [findingRow], error: null }, update: [{ data: [{ id: "fde-1" }], error: null }] } });
     const summary = await deliverQueuedFindingAlerts(client, config);
-    expect(summary).toEqual({ sent: 1, failed: 0, skipped: 0 });
+    expect(summary).toEqual({ sent: 1, failed: 0, skipped: 0, readError: false });
+  });
+
+  it("records and logs a Slack-side send failure without throwing", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ status: 200, json: async () => ({ ok: false, error: "invalid_auth" }) }));
+    const findingRow = { id: "fde-2", event_id: "finding.created:f-2", status: "queued", payload: { title: "Improve answer-page evidence", priority: "high", dashboardPath: "/findings/f-2" }, attempt_count: 0 };
+    const client = fakeClient({ finding_delivery_events: { select: { data: [findingRow], error: null }, update: [{ data: [{ id: "fde-2" }], error: null }] } });
+    const summary = await deliverQueuedFindingAlerts(client, config);
+    expect(summary).toEqual({ sent: 0, failed: 1, skipped: 0, readError: false });
+    expect(consoleError).toHaveBeenCalledWith("Slack finding alert send failed", { rowId: "fde-2", error: "invalid_auth" });
+  });
+
+  it("flags readError instead of silently returning zeros when the read itself fails", async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    const client = fakeClient({ finding_delivery_events: { select: { data: null, error: { message: "connection refused" } }, update: [{ error: null }] } });
+    const summary = await deliverQueuedFindingAlerts(client, config);
+    expect(summary).toEqual({ sent: 0, failed: 0, skipped: 0, readError: true });
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });

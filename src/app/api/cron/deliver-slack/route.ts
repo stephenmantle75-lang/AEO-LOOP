@@ -1,6 +1,7 @@
 import { getServerEnv } from "@/lib/env";
 import { createServiceClient } from "@/lib/supabase";
 import { deliverQueuedFindingAlerts, deliverQueuedReports } from "@/lib/slack-delivery";
+import { checkSlackAuth } from "@/lib/slack";
 import { apiErrorResponse, logServerError } from "@/lib/api-response";
 
 export const runtime = "nodejs";
@@ -26,15 +27,20 @@ export async function GET(request: Request) {
   try {
     const client = createServiceClient();
     const channel = env.slackChannel!;
-    const [reports, findingAlerts] = await Promise.all([
+    const [reports, findingAlerts, reportAuth, alertAuth] = await Promise.all([
       env.slackReportBotToken
         ? deliverQueuedReports(client, { token: env.slackReportBotToken, channel, siteOrigin: env.siteOrigin })
-        : { sent: 0, failed: 0, skipped: 0, reason: "no_report_bot_token" },
+        : { sent: 0, failed: 0, skipped: 0, readError: false, reason: "no_report_bot_token" },
       env.slackAlertBotToken
         ? deliverQueuedFindingAlerts(client, { token: env.slackAlertBotToken, channel, siteOrigin: env.siteOrigin })
-        : { sent: 0, failed: 0, skipped: 0, reason: "no_alert_bot_token" },
+        : { sent: 0, failed: 0, skipped: 0, readError: false, reason: "no_alert_bot_token" },
+      // Read-only — confirms which token is actually configured on this
+      // deployment right now, independent of whether anything was queued
+      // to send. Sends no message.
+      env.slackReportBotToken ? checkSlackAuth(env.slackReportBotToken) : { ok: false as const, error: "no_report_bot_token" },
+      env.slackAlertBotToken ? checkSlackAuth(env.slackAlertBotToken) : { ok: false as const, error: "no_alert_bot_token" },
     ]);
-    return Response.json({ ok: true, reports, findingAlerts });
+    return Response.json({ ok: true, reports, findingAlerts, auth: { report: reportAuth, alert: alertAuth } });
   } catch (error) {
     logServerError("Slack delivery failed", error);
     return apiErrorResponse("DELIVERY_FAILED", "Slack delivery failed", 500);

@@ -4,6 +4,28 @@ export type SlackBlock = Record<string, unknown>;
 
 export type SlackSendResult = { ok: true; ts: string } | { ok: false; error: string };
 
+export type SlackAuthCheck = { ok: true; team: string; user: string } | { ok: false; error: string };
+
+/**
+ * Read-only credential check via auth.test — sends no message, just confirms
+ * whether a token is currently valid and which bot/workspace it belongs to.
+ * Lets the cron response answer "is this token actually good right now"
+ * without ever needing the token value outside this one request.
+ */
+export async function checkSlackAuth(token: string): Promise<SlackAuthCheck> {
+  try {
+    const response = await fetch("https://slack.com/api/auth.test", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = (await response.json()) as { ok: boolean; team?: string; user?: string; error?: string };
+    if (!data.ok) return { ok: false, error: data.error ?? `http_${response.status}` };
+    return { ok: true, team: data.team ?? "unknown", user: data.user ?? "unknown" };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "network_error" };
+  }
+}
+
 /**
  * Post one message to Slack via chat.postMessage using a plain fetch call.
  * ponytail: no @slack/web-api dependency — this is the entire surface we need,

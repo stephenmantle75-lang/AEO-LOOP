@@ -254,10 +254,26 @@ existing `AEO_REPORT_PERSISTENCE_ENABLED` gate pattern:
 
 Both bots are already invited into `#aeo-growth-loop`. Each drain checks its
 own token independently, so setting only one goes half-live rather than
-waiting on both. None of the three are set yet, so this ships dark. Tests: `tests/slack.test.ts` (message
+waiting on both. Tests: `tests/slack.test.ts` (message
 formatting, Slack success/error/network-failure), `tests/slack-delivery.test.ts`
-(sent, a failed run still ships its pulse, a Slack-side send error, and the
-claim race that prevents a duplicate send).
+(sent, a failed run still ships its pulse, a Slack-side send error, the
+claim race that prevents a duplicate send, and a Supabase read failure
+surfacing as `readError: true` instead of a silent zero summary).
+
+**Live status — 30 August 2026.** `AEO_SLACK_DELIVERY_ENABLED=true` and both
+bot tokens are set on Vercel. A production test run returned `reports:
+{sent:0, failed:0, skipped:0}` against 15 genuinely queued `report_outbox`
+rows — before this fix that looked like an empty queue; it was actually the
+Supabase read failing silently, cause not yet identified (same service-role
+key reads `finding_delivery_events` successfully in the same request, so
+it's not a blanket credential problem). `findingAlerts` reached Slack and
+got `invalid_auth` back from `chat.postMessage` for both queued alerts —
+`SLACK_ALERT_BOT_TOKEN` (Hermes) needs a fresh Bot User OAuth Token from
+api.slack.com/apps. `SLACK_REPORT_BOT_TOKEN` (Pulse) validity is still
+unconfirmed — the report drain never got far enough to call Slack. Re-run
+the cron once the alert token is fixed; the response's `reports.readError`
+field will show whether the report-side read is now fixed too or needs
+separate investigation.
 
 Not built here: Supabase platform-health metrics (slow queries, connections,
 disk/CPU) — that needs a Supabase Management API token, which is a separate,
