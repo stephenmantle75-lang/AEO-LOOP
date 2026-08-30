@@ -3,8 +3,9 @@ import { readFile } from "node:fs/promises";
 
 describe("daily comparison contract", () => {
   it("wires the scheduled route to the paired control and Variant B collector", async () => {
-    const [route, collection, vercel] = await Promise.all([
+    const [route, manualRoute, collection, vercel] = await Promise.all([
       readFile("src/app/api/cron/daily-observation/route.ts", "utf8"),
+      readFile("src/app/api/runs/comparison/route.ts", "utf8"),
       readFile("src/lib/collection.ts", "utf8"),
       readFile("vercel.json", "utf8"),
     ]);
@@ -14,6 +15,9 @@ describe("daily comparison contract", () => {
     expect(collection).toContain("seoVsAeoVariantTopic");
     expect(collection).toContain('runType: "experiment_retest"');
     expect(collection).toContain("dailyComparisonKey");
+    expect(collection).toContain("runPairedExperimentObservation");
+    expect(manualRoute).toContain("runPairedExperimentObservation");
+    expect(manualRoute).toContain('runType: "paired_experiment"');
     expect(vercel).toContain('"path": "/api/cron/daily-observation"');
   });
 });
