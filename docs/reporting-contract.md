@@ -248,10 +248,13 @@ reports, the same `finding_delivery_events` row for alerts — with status,
 existing `AEO_REPORT_PERSISTENCE_ENABLED` gate pattern:
 
 - `AEO_SLACK_DELIVERY_ENABLED=true`
-- `SLACK_BOT_TOKEN` for a bot already invited to `#aeo-growth-loop`
-  (`SLACK_AEO_CHANNEL` overrides the channel; defaults to `#aeo-growth-loop`)
+- `SLACK_REPORT_BOT_TOKEN` — Mantle Reporter's bot token, posts the daily pulse
+- `SLACK_ALERT_BOT_TOKEN` — Hermes's bot token, posts the short finding alerts
+- (`SLACK_AEO_CHANNEL` overrides the channel; defaults to `#aeo-growth-loop`)
 
-Neither is set yet, so this ships dark. Tests: `tests/slack.test.ts` (message
+Both bots are already invited into `#aeo-growth-loop`. Each drain checks its
+own token independently, so setting only one goes half-live rather than
+waiting on both. None of the three are set yet, so this ships dark. Tests: `tests/slack.test.ts` (message
 formatting, Slack success/error/network-failure), `tests/slack-delivery.test.ts`
 (sent, a failed run still ships its pulse, a Slack-side send error, and the
 claim race that prevents a duplicate send).
