@@ -38,6 +38,7 @@ Body:
 Approved topic keys:
 
 - `seo-vs-aeo-portfolio`
+- `seo-vs-aeo-portfolio-variant-b`
 - `self-improving-website`
 - `github-linear-slack-website-loop`
 

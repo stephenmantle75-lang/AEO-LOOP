@@ -8,6 +8,9 @@ export type TopicDefinition = {
 export const defaultAeoTargetUrl =
   "https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio";
 
+export const defaultAeoVariantTargetUrl =
+  "https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio-variant-b";
+
 export const seoVsAeoTopic: TopicDefinition = {
   key: "seo-vs-aeo-portfolio",
   question: "What is the difference between SEO and AEO for a personal portfolio?",
@@ -26,6 +29,13 @@ export const seoVsAeoTopic: TopicDefinition = {
     "What is the difference between being found in search and being cited in an answer?",
     "Which page on Stephen Mantle's website explains SEO versus AEO for portfolios?",
   ],
+};
+
+export const seoVsAeoVariantTopic: TopicDefinition = {
+  key: "seo-vs-aeo-portfolio-variant-b",
+  question: seoVsAeoTopic.question,
+  targetUrl: process.env.AEO_VARIANT_TARGET_URL ?? defaultAeoVariantTargetUrl,
+  prompts: [...seoVsAeoTopic.prompts],
 };
 
 function portfolioOrigin(): string {
@@ -74,7 +84,12 @@ export const githubLinearSlackTopic: TopicDefinition = {
   ],
 };
 
-export const knownTopics: TopicDefinition[] = [seoVsAeoTopic, selfImprovingWebsiteTopic, githubLinearSlackTopic];
+export const knownTopics: TopicDefinition[] = [
+  seoVsAeoTopic,
+  seoVsAeoVariantTopic,
+  selfImprovingWebsiteTopic,
+  githubLinearSlackTopic,
+];
 
 export function topicForKey(key: string): TopicDefinition | null {
   return knownTopics.find((topic) => topic.key === key) ?? null;
