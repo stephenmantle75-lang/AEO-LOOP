@@ -1,4 +1,4 @@
-import { runDailyObservation } from "@/lib/collection";
+import { runDailyComparison } from "@/lib/collection";
 import { apiErrorResponse, logServerError } from "@/lib/api-response";
 
 export const runtime = "nodejs";
@@ -12,9 +12,9 @@ export async function GET(request: Request) {
   }
 
   try {
-    const result = await runDailyObservation();
-    const status = result.status === "not_started" ? 202 : 200;
-    return Response.json({ ok: true, ...result }, { status });
+    const result = await runDailyComparison();
+    const status = result.control.status === "not_started" && result.variant.status === "not_started" ? 202 : 200;
+    return Response.json({ ok: true, runType: "daily_comparison", ...result }, { status });
   } catch (error) {
     logServerError("Daily observation failed", error);
     return apiErrorResponse("COLLECTION_FAILED", "Collection failed", 500);

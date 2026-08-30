@@ -99,6 +99,10 @@ export function experimentRunKey(topicKey: string, startedAt: string, nonce: str
   return `experiment:${topicKey}:${startedAt}:${nonce}`;
 }
 
+export function dailyComparisonKey(dateKey: string): string {
+  return `seo-vs-aeo:daily:${dateKey}`;
+}
+
 export function promptLimit(topic: TopicDefinition): string[] {
   const configured = Number.parseInt(process.env.AEO_MAX_EXA_PROMPTS ?? "1", 10);
   const limit = Number.isFinite(configured) ? Math.min(Math.max(configured, 1), topic.prompts.length) : 1;

@@ -16,7 +16,7 @@ observability results.
 | Control target | `https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio` |
 | Variant target | `https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio-variant-b` |
 | Same prompt set | Yes |
-| Current state | Local preparation only |
+| Current state | Paired retest ready; production collection pending |
 
 ## Hypothesis
 
@@ -41,11 +41,11 @@ unpublished performance claims are rendered on the public page.
 - [x] Preserve the current control page.
 - [x] Add the local Variant B route and portfolio metadata.
 - [x] Register the variant as an approved AEO LOOP topic.
-- [ ] Review the local page and source links.
-- [ ] Run portfolio CI and create a human-reviewed PR.
-- [ ] Deploy the variant to its intended production URL.
+- [x] Review the local page and source links.
+- [x] Run portfolio CI and create a human-reviewed PR.
+- [x] Deploy the variant to its intended production URL.
 - [ ] Confirm the deployed URL and commit before collection.
-- [ ] Run the same fixed prompt set against control and variant.
+- [ ] Run the same fixed prompt set against control and variant through the paired daily route.
 - [ ] Compare citation outcome, inspectability, evidence quality, and human usefulness.
 - [ ] Record the result and decision in Linear and Notion.
 

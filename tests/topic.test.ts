@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defaultAeoTargetUrl, defaultAeoVariantTargetUrl, experimentRunKey, knownTopics, promptLimit, seoVsAeoTopic, seoVsAeoVariantTopic, topicForKey } from "../src/lib/topic";
+import { dailyComparisonKey, defaultAeoTargetUrl, defaultAeoVariantTargetUrl, experimentRunKey, knownTopics, promptLimit, seoVsAeoTopic, seoVsAeoVariantTopic, topicForKey } from "../src/lib/topic";
 
 describe("topic contract", () => {
   it("defaults to the public portfolio answer page", () => {
@@ -47,5 +47,9 @@ describe("topic contract", () => {
 
     expect(first).toBe("experiment:self-improving-website:2026-08-29T08:00:00.000Z:run-a");
     expect(second).not.toBe(first);
+  });
+
+  it("creates a deterministic key that links the scheduled control and variant runs", () => {
+    expect(dailyComparisonKey("2026-08-30")).toBe("seo-vs-aeo:daily:2026-08-30");
   });
 });
