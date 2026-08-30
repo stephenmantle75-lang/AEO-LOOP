@@ -79,3 +79,30 @@ drop trigger if exists findings_queue_delivery_intents on public.findings;
 create trigger findings_queue_delivery_intents
 after insert on public.findings
 for each row execute function public.queue_finding_delivery_intents();
+
+-- Backfill findings approved before this migration was applied. The same
+-- uniqueness constraints make this safe to rerun during a migration retry.
+insert into public.finding_delivery_events (finding_id, event_id, channel, payload)
+select
+  findings.id,
+  'finding.created:' || findings.id::text,
+  channel,
+  jsonb_build_object(
+    'eventId', 'finding.created:' || findings.id::text,
+    'findingId', findings.id,
+    'runId', findings.run_id,
+    'topic', findings.topic_key,
+    'confidence', findings.confidence,
+    'dashboardPath', '/findings/' || findings.id::text,
+    'createdAt', findings.created_at,
+    'title', findings.title,
+    'summary', findings.summary,
+    'recommendation', findings.recommendation,
+    'priority', findings.priority,
+    'evidenceIds', to_jsonb(findings.evidence_ids)
+  )
+from public.findings
+cross join unnest(array['linear', 'slack', 'zapier']::text[]) as channels(channel)
+where findings.analysis_id is not null
+  and findings.status = 'new'
+on conflict (finding_id, channel) do nothing;

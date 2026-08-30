@@ -18,6 +18,8 @@ describe("approved finding delivery contract", () => {
     const deliveryMigration = await readFile("supabase/migrations/20260830170000_finding_delivery_intents.sql", "utf8");
 
     expect(deliveryMigration).toContain("create trigger findings_queue_delivery_intents");
+    expect(deliveryMigration).toContain("Backfill findings approved before this migration was applied");
+    expect(deliveryMigration).toContain("where findings.analysis_id is not null");
     expect(deliveryMigration).toContain("insert into public.finding_delivery_events");
     expect(deliveryMigration).toContain("finding.created:");
     expect(deliveryMigration).toContain("on conflict (finding_id, channel) do nothing");
