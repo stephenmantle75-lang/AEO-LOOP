@@ -33,13 +33,23 @@ The login screen uses a magic link with `shouldCreateUser: false`, so an unknown
 - A non-empty review note is required for both approval and rejection.
 - The database RPC accepts only `draft → approved` or `draft → rejected` once.
 - Approval creates `findings` rows linked to the analysis and source evidence IDs.
+- Approval also queues one idempotent delivery intent per finding and channel in
+  `finding_delivery_events`; the intent contains a relative dashboard path and
+  sanitized finding context for downstream adapters.
 - Every decision creates one append-only `analysis_review_events` row.
 - Rejection creates no finding.
-- No Linear, Slack, Zapier, GitHub, portfolio, or deployment action runs yet.
+- The migration does not send Linear, Slack, or Zapier messages. External
+  adapters remain disabled until their credentials, retry policy, and callback
+  contract are reviewed.
 
 ## Migration and production gate
 
-`supabase/migrations/20260829224252_secure_analysis_review.sql` is intentionally local-only until the Auth provider, owner UUID, and review UI have been tested. Applying it to Supabase production and enabling `AEO_REVIEW_AUTH_ENABLED=true` are separate manual release steps.
+`supabase/migrations/20260829224252_secure_analysis_review.sql` establishes the
+review boundary. The follow-on
+`supabase/migrations/20260830170000_finding_delivery_intents.sql` adds the
+atomic intent queue. Applying either migration and enabling
+`AEO_REVIEW_AUTH_ENABLED=true` are separate release steps; external delivery
+adapters still require their own credential and retry-policy review.
 
 ## Test cases
 
