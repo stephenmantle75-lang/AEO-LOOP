@@ -48,7 +48,10 @@ function fakeClient(table: Record<string, { select: unknown; update: unknown[] }
 }
 
 describe("deliverQueuedReports", () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
 
   it("sends a queued report and marks the outbox row + delivery event sent", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ status: 200, json: async () => ({ ok: true, ts: "111.1" }) }));
@@ -67,11 +70,13 @@ describe("deliverQueuedReports", () => {
   });
 
   it("records a Slack-side send failure without throwing", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ status: 200, json: async () => ({ ok: false, error: "channel_not_found" }) }));
     const outboxRow = { id: "outbox-3", report_id: "report-3", event_id: "daily-pulse:run-3", status: "queued", payload: report, attempt_count: 0 };
     const client = fakeClient({ report_outbox: { select: { data: [outboxRow], error: null }, update: [{ data: [{ id: "outbox-3" }], error: null }] } });
     const summary = await deliverQueuedReports(client, config);
     expect(summary).toEqual({ sent: 0, failed: 1, skipped: 0, readError: false });
+    expect(consoleError).toHaveBeenCalledWith("Slack report send failed", { outboxId: "outbox-3", error: "channel_not_found" });
   });
 
   it("skips a row another cron run already claimed instead of double-sending", async () => {
@@ -105,7 +110,10 @@ describe("deliverQueuedReports", () => {
 });
 
 describe("deliverQueuedFindingAlerts", () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
 
   it("sends a short alert per queued finding and marks it sent", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ status: 200, json: async () => ({ ok: true, ts: "222.1" }) }));
@@ -113,6 +121,16 @@ describe("deliverQueuedFindingAlerts", () => {
     const client = fakeClient({ finding_delivery_events: { select: { data: [findingRow], error: null }, update: [{ data: [{ id: "fde-1" }], error: null }] } });
     const summary = await deliverQueuedFindingAlerts(client, config);
     expect(summary).toEqual({ sent: 1, failed: 0, skipped: 0, readError: false });
+  });
+
+  it("records and logs a Slack-side send failure without throwing", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ status: 200, json: async () => ({ ok: false, error: "invalid_auth" }) }));
+    const findingRow = { id: "fde-2", event_id: "finding.created:f-2", status: "queued", payload: { title: "Improve answer-page evidence", priority: "high", dashboardPath: "/findings/f-2" }, attempt_count: 0 };
+    const client = fakeClient({ finding_delivery_events: { select: { data: [findingRow], error: null }, update: [{ data: [{ id: "fde-2" }], error: null }] } });
+    const summary = await deliverQueuedFindingAlerts(client, config);
+    expect(summary).toEqual({ sent: 0, failed: 1, skipped: 0, readError: false });
+    expect(consoleError).toHaveBeenCalledWith("Slack finding alert send failed", { rowId: "fde-2", error: "invalid_auth" });
   });
 
   it("flags readError instead of silently returning zeros when the read itself fails", async () => {
