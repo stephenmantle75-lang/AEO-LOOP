@@ -210,42 +210,54 @@ export type ReportDeliveryStatus = {
   status: "queued" | "processing" | "sent" | "failed" | "cancelled" | null;
   deliveredAt: string | null;
   lastError: string | null;
+  /** true when the Supabase read itself failed — distinct from a read that succeeded and
+   *  found nothing. Callers should render this as "unavailable", not as "not generated". */
+  readError: boolean;
 };
+
+const emptyDeliveryStatus: ReportDeliveryStatus = { reportId: null, status: null, deliveredAt: null, lastError: null, readError: false };
 
 /** Real delivery status for one run's report — report_outbox.status IS the delivery
  *  status (the drain writes it back after every Slack attempt), so this is a plain
  *  read rather than a re-derivation. `status: null` means no report/outbox row exists
- *  yet, distinct from a report that's queued but not yet sent. */
-export async function getReportDeliveryStatus(runId: string): Promise<ReportDeliveryStatus> {
-  const empty: ReportDeliveryStatus = { reportId: null, status: null, deliveredAt: null, lastError: null };
-  const client = dashboardClient();
-  if (!client) return empty;
-
+ *  yet, distinct from a report that's queued but not yet sent. A failed read no longer
+ *  throws (that took down the whole page render for a transient Supabase blip) — it
+ *  comes back as `readError: true` so the UI can show "unavailable" and keep rendering. */
+export async function reportDeliveryStatusFromClient(client: SupabaseClient, runId: string): Promise<ReportDeliveryStatus> {
   const { data: report, error: reportError } = await client.from("reports").select("id").eq("run_id", runId).maybeSingle();
-  if (reportError) throw new Error(`Report record could not be loaded from Supabase: ${reportError.message}`);
-  if (!report) return empty;
+  if (reportError) return { ...emptyDeliveryStatus, readError: true };
+  if (!report) return emptyDeliveryStatus;
 
   const { data: outbox, error: outboxError } = await client
     .from("report_outbox")
     .select("status, delivered_at, last_error")
     .eq("report_id", report.id)
     .maybeSingle();
-  if (outboxError) throw new Error(`Report delivery status could not be loaded from Supabase: ${outboxError.message}`);
-  if (!outbox) return { ...empty, reportId: report.id };
+  if (outboxError) return { ...emptyDeliveryStatus, reportId: report.id, readError: true };
+  if (!outbox) return { ...emptyDeliveryStatus, reportId: report.id };
 
-  return { reportId: report.id, status: outbox.status as ReportDeliveryStatus["status"], deliveredAt: outbox.delivered_at, lastError: outbox.last_error };
+  return { reportId: report.id, status: outbox.status as ReportDeliveryStatus["status"], deliveredAt: outbox.delivered_at, lastError: outbox.last_error, readError: false };
+}
+
+export async function getReportDeliveryStatus(runId: string): Promise<ReportDeliveryStatus> {
+  const client = dashboardClient();
+  if (!client) return emptyDeliveryStatus;
+  return reportDeliveryStatusFromClient(client, runId);
 }
 
 /** Maps a delivery status onto the existing provider-state/dot color tones so no new CSS is needed. */
-export function deliveryStatusTone(status: ReportDeliveryStatus["status"]): string {
-  if (status === "sent") return "observed";
-  if (status === "failed") return "failed";
-  if (status === "queued" || status === "processing") return "not-run";
+export function deliveryStatusTone(delivery: ReportDeliveryStatus | null): string {
+  if (!delivery || delivery.readError) return "failed";
+  if (delivery.status === "sent") return "observed";
+  if (delivery.status === "failed") return "failed";
+  if (delivery.status === "queued" || delivery.status === "processing") return "not-run";
   return "";
 }
 
-export function deliveryStatusLabel(status: ReportDeliveryStatus["status"]): string {
-  return status ?? "not generated";
+export function deliveryStatusLabel(delivery: ReportDeliveryStatus | null): string {
+  if (!delivery || delivery.readError) return "delivery status unavailable";
+  if (delivery.status === "queued" || delivery.status === "processing") return `${delivery.status} — delayed`;
+  return delivery.status ?? "not generated";
 }
 
 export async function getTopicObservations(key: string, limit = 100): Promise<ObservatoryResult<ObservationRow[]>> {
