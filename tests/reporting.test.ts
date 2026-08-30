@@ -150,6 +150,37 @@ describe("draft analysis", () => {
     expect(drafts[0].recommendation).toContain("separately deployed answer-page variant");
   });
 
+  it("does not recommend creating Variant B again after a variant retest", () => {
+    const variantRun: RunRow = {
+      ...run,
+      id: "variant-run",
+      run_type: "experiment_retest",
+      metadata: { comparisonKey: "seo-vs-aeo:manual:test", comparisonRole: "variant" },
+    };
+    const drafts = buildDraftFindings({
+      run: variantRun,
+      observations: [observation({ run_id: variantRun.id, topic_key: "seo-vs-aeo-portfolio-variant-b", citation_found: false })],
+    });
+
+    expect(drafts[0].recommendation).not.toContain("Create a separately deployed answer-page variant");
+    expect(drafts[0].recommendation).toContain("authority and discovery gaps");
+    expect(drafts[0].recommendation).toContain("paired control");
+  });
+
+  it("keeps a paired control frozen until the variant comparison is reviewed", () => {
+    const controlRun: RunRow = {
+      ...run,
+      metadata: { comparisonKey: "seo-vs-aeo:manual:test", comparisonRole: "control" },
+    };
+    const drafts = buildDraftFindings({
+      run: controlRun,
+      observations: [observation({ citation_found: false })],
+    });
+
+    expect(drafts[0].recommendation).toContain("Keep the control unchanged");
+    expect(drafts[0].recommendation).toContain("paired Variant B run");
+  });
+
   it("prioritizes a target integrity failure and does not invent a citation gap", () => {
     const drafts = buildDraftFindings({
       run,
@@ -173,9 +204,9 @@ describe("draft analysis", () => {
     expect(analysis.metadata).toEqual({
       analysisId: "draft-analysis:run-1",
       runId: "run-1",
-      agentVersion: "deterministic-review-v1",
+      agentVersion: "deterministic-review-v2",
       model: null,
-      promptVersion: "evidence-to-finding.v1",
+      promptVersion: "evidence-to-finding.v2",
       costUsd: 0,
       analyzedAt: "2026-08-27T08:00:10.000Z",
       reviewMode: "draft_only",
