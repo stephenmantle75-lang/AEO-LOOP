@@ -13,6 +13,13 @@ export type ServerEnv = {
   analysisPersistenceEnabled: boolean;
   reportingTimeZone: string;
   monthlyProviderBudgetUsd?: number;
+  /** Pulse — posts the rich daily pulse. */
+  slackReportBotToken?: string;
+  /** Hermes — already posts the short alert-with-link pattern in #ci-alerts; posts finding alerts here too. */
+  slackAlertBotToken?: string;
+  slackChannel?: string;
+  slackDeliveryEnabled: boolean;
+  siteOrigin: string;
 };
 
 export function getSupabaseAuthConfig(): { supabaseUrl: string; publishableKey: string } | null {
@@ -41,6 +48,11 @@ export function getServerEnv(): ServerEnv {
     analysisPersistenceEnabled: process.env.AEO_ANALYSIS_PERSISTENCE_ENABLED === "true",
     reportingTimeZone: reportingTimeZone(),
     monthlyProviderBudgetUsd: parseMonthlyProviderBudgetUsd(),
+    slackReportBotToken: process.env.SLACK_REPORT_BOT_TOKEN,
+    slackAlertBotToken: process.env.SLACK_ALERT_BOT_TOKEN,
+    slackChannel: process.env.SLACK_AEO_CHANNEL || "#aeo-growth-loop",
+    slackDeliveryEnabled: process.env.AEO_SLACK_DELIVERY_ENABLED === "true",
+    siteOrigin: process.env.NEXT_PUBLIC_SITE_ORIGIN || "https://aeo-loop.vercel.app",
   };
 }
 

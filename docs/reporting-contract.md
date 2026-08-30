@@ -229,6 +229,41 @@ behaviour. The application must then persist the sanitized report only after a
 run closes, enqueue one outbox event by `event_id`, and use
 `(event_id, channel)` as the delivery idempotency key.
 
+## Slack delivery adapter (ANT-58)
+
+`src/lib/slack.ts` sends via a plain `fetch` to `chat.postMessage` — no new
+dependency. `src/lib/slack-delivery.ts` drains `report_outbox` (one rich
+pulse per report, Block Kit, formatted per the layout above) and the
+`channel = 'slack'` rows of `finding_delivery_events` (one short
+alert-with-link per approved finding, `🔍 finding [priority] — title. <link>`)
+into `#aeo-growth-loop`. Both queries claim a row (`status: queued →
+processing`) before sending so two overlapping cron runs cannot double-post,
+and every attempt is written back to Supabase — `delivery_events` for
+reports, the same `finding_delivery_events` row for alerts — with status,
+`external_id` (the Slack message ts), and `delivered_at`.
+
+`src/app/api/cron/deliver-slack/route.ts` runs both drains on the same
+`CRON_SECRET` bearer auth as the daily-observation cron. It is a no-op
+(`202 slack_delivery_disabled`) until two things are set, matching the
+existing `AEO_REPORT_PERSISTENCE_ENABLED` gate pattern:
+
+- `AEO_SLACK_DELIVERY_ENABLED=true`
+- `SLACK_REPORT_BOT_TOKEN` — Pulse's bot token, posts the daily pulse
+- `SLACK_ALERT_BOT_TOKEN` — Hermes's bot token, posts the short finding alerts
+- (`SLACK_AEO_CHANNEL` overrides the channel; defaults to `#aeo-growth-loop`)
+
+Both bots are already invited into `#aeo-growth-loop`. Each drain checks its
+own token independently, so setting only one goes half-live rather than
+waiting on both. None of the three are set yet, so this ships dark. Tests: `tests/slack.test.ts` (message
+formatting, Slack success/error/network-failure), `tests/slack-delivery.test.ts`
+(sent, a failed run still ships its pulse, a Slack-side send error, and the
+claim race that prevents a duplicate send).
+
+Not built here: Supabase platform-health metrics (slow queries, connections,
+disk/CPU) — that needs a Supabase Management API token, which is a separate,
+currently-dead credential (see the MCP connection audit). This adapter only
+covers the application-data half of ANT-58 (daily pulse + finding alerts).
+
 ## Acceptance checklist
 
 - [ ] A daily pulse can be reproduced from a stored run without re-calling a provider.
