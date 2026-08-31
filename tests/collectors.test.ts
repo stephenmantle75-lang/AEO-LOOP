@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { isRetryableProviderStatus, sanitizeCitationUrl, sanitizeCitations, searchWithExa } from "../src/lib/collectors";
+import { isRetryableProviderStatus, sanitizeCitationUrl, sanitizeCitations, scrapeTargetPage, searchWithExa } from "../src/lib/collectors";
 
 describe("provider citation boundaries", () => {
   afterEach(() => {
@@ -57,5 +57,29 @@ describe("provider citation boundaries", () => {
       targetResultTitle: "Target result",
       retrieval: "exa_search_result",
     });
+  });
+
+  it("stores a generic message when Exa throws a provider exception", async () => {
+    process.env.EXA_API_KEY = "test-key";
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://supabase.example.test";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-test-key";
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("authorization token=must-not-leak")));
+
+    const result = await searchWithExa("test prompt", "https://example.com/target");
+
+    expect(result.errorMessage).toBe("Exa request failed after retries");
+    expect(JSON.stringify(result)).not.toContain("must-not-leak");
+  });
+
+  it("stores a generic message when Firecrawl throws a provider exception", async () => {
+    process.env.FIRECRAWL_API_KEY = "test-key";
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://supabase.example.test";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-test-key";
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("secret=must-not-leak")));
+
+    const result = await scrapeTargetPage("https://example.com/target");
+
+    expect(result.errorMessage).toBe("Firecrawl request failed after retries");
+    expect(JSON.stringify(result)).not.toContain("must-not-leak");
   });
 });
