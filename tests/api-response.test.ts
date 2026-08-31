@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { apiErrorResponse, logServerError } from "../src/lib/api-response";
+import { apiErrorResponse, logServerError, publicErrorMessage } from "../src/lib/api-response";
 
 describe("API error responses", () => {
   it("returns a stable no-store error contract", async () => {
@@ -19,5 +19,11 @@ describe("API error responses", () => {
     expect(spy).toHaveBeenCalledWith("Collection failed", { name: "Error", type: "object" });
     expect(JSON.stringify(spy.mock.calls)).not.toContain("provider secret");
     spy.mockRestore();
+  });
+
+  it("allows known operational messages but redacts arbitrary stored errors", () => {
+    expect(publicErrorMessage("Exa request failed with HTTP 429", "Provider failed")).toBe("Exa request failed with HTTP 429");
+    expect(publicErrorMessage("relation observations does not exist: service role token=secret", "Provider failed")).toBe("Provider failed");
+    expect(publicErrorMessage("x".repeat(161), "Provider failed")).toBe("Provider failed");
   });
 });

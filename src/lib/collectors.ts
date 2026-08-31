@@ -136,9 +136,9 @@ export async function scrapeTargetPage(targetUrl: string): Promise<PageObservati
       metrics: { configured: true, statusCode, title, description, contentCharacters: markdown.length, linkCount: links.length, rejectedLinkCount: rawLinks.length - links.length, attempts, retryCount: attempts - 1 },
       ...(statusCode === 200 && intendedPage ? {} : { errorMessage: "Target page did not return an inspectable document" }),
     };
-  } catch (error) {
+  } catch {
     const retryCount = Math.max(0, attempts - 1);
-    return { status: "failed", citationUrls: [], citations: [], metrics: { attempts: attempts || 1, retryCount }, errorMessage: error instanceof Error ? error.message : "Unknown Firecrawl error" };
+    return { status: "failed", citationUrls: [], citations: [], metrics: { attempts: attempts || 1, retryCount }, errorMessage: "Firecrawl request failed after retries" };
   }
 }
 
@@ -202,8 +202,8 @@ export async function searchWithExa(prompt: string, targetUrl: string): Promise<
       },
       confidence: results.length > 0 ? 0.8 : 0.2,
     };
-  } catch (error) {
+  } catch {
     const retryCount = Math.max(0, attempts - 1);
-    return { status: "failed", citationUrls: [], citations: [], metrics: { attempts: attempts || 1, retryCount }, errorMessage: error instanceof Error ? error.message : "Unknown Exa error" };
+    return { status: "failed", citationUrls: [], citations: [], metrics: { attempts: attempts || 1, retryCount }, errorMessage: "Exa request failed after retries" };
   }
 }

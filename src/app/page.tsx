@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { publicErrorMessage } from "@/lib/api-response";
 import { ConnectionNotice, ObservatoryShell, PageHeader } from "./_components/observatory-shell";
 import { citationRate, deliveryStatusLabel, deliveryStatusTone, displayUrl, formatCost, formatDate, formatDuration, getOverviewData, getReportDeliveryStatus, observationLabel, providerLabel, runLabel } from "@/lib/observatory";
 import { buildDailyPulseReport } from "@/lib/reporting";
@@ -17,7 +18,7 @@ export default async function ObservatoryPage() {
   return <ObservatoryShell active="overview" findingCount={openFindings}>
     <PageHeader eyebrow="Observatory / Overview" title="Good morning, Stephen." description="A live review of what the AEO loop observed, learned, and is ready to review." connected={result.connected} />
     <ConnectionNotice connected={result.connected} />
-    {(observationCountError || latestObservationsError) && <div className="notice" role="status">{[observationCountError, latestObservationsError].filter(Boolean).join(" ")} Other database-backed sections remain visible; refresh to retry the unavailable read.</div>}
+    {(observationCountError || latestObservationsError) && <div className="notice" role="status">Some Observatory metrics are temporarily unavailable. Other database-backed sections remain visible; refresh to retry the unavailable read.</div>}
 
     <section className="cards" aria-label="Key metrics">
       <div className="card"><div className="card-label">Latest run</div><div className={`metric metric-status ${latest?.status ?? "empty"}`}>{latest?.status ?? "—"}</div><div className="metric-note">{latest ? formatDate(latest.created_at) : "No run recorded"}</div></div>

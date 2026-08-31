@@ -144,7 +144,7 @@ async function runTopicObservation(config: CollectionConfig): Promise<Collection
       return { runId, runType: config.runType, topicKey: config.topic.key, status, observations, analysisStatus, reportStatus: "failed" };
     }
   } catch (error) {
-    await completeRun(client, runId, "failed", startedAt, sources, costUsd, error instanceof Error ? error.message : "Unknown collection error");
+    await completeRun(client, runId, "failed", startedAt, sources, costUsd, "Collection failed; inspect server logs");
     throw error;
   } finally {
     await stopHeartbeat();
