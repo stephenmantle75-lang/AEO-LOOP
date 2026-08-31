@@ -16,7 +16,7 @@ observability results.
 | Control target | `https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio` |
 | Variant target | `https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio-variant-b` |
 | Same prompt set | Yes |
-| Current state | Paired retest live; expanded manual measurement ready |
+| Current state | Initial paired baseline complete; ANT-59 content iteration prepared locally |
 
 ## Hypothesis
 
@@ -36,6 +36,19 @@ understand and extract without reducing human usefulness.
 No provider results, citation rates, costs, run IDs, database rows, or
 unpublished performance claims are rendered on the public page.
 
+## Next iteration — ANT-59
+
+The first paired full-prompt comparison did not establish Variant B as the
+winner. The control therefore remains frozen. The next isolated content change
+adds one visible section titled “What this page has actually tested” to the
+Variant B page. It states what was built, how the ten-prompt comparison ran,
+what was observed, and what the result does not prove.
+
+The change is prepared in the separate `stephenmantle-portfolio` repository as
+local commit `8fc8fd7` on branch `feature/ant-57-vercel-canonical-variant-b`.
+It is not yet a Preview deployment. The canonical host, metadata, sitemap,
+robots file, links, layout, control page, and prompt set remain unchanged.
+
 ## Test sequence
 
 - [x] Preserve the current control page.
@@ -48,6 +61,9 @@ unpublished performance claims are rendered on the public page.
 - [x] Run the same fixed prompt set against control and variant through the paired route.
 - [x] Keep the scheduled daily route bounded while allowing full-prompt manual batches.
 - [x] Store Exa target result position and result-count diagnostics per query.
+- [x] Record the initial paired result as no established Variant B win.
+- [ ] Push the ANT-59 content commit and review the Vercel Preview.
+- [ ] Run the same ten-prompt paired comparison after Preview review.
 - [ ] Compare citation outcome, inspectability, evidence quality, and human usefulness.
 - [ ] Record the result and decision in Linear and Notion.
 
