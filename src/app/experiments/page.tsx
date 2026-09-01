@@ -13,9 +13,9 @@ export default async function ExperimentsPage() {
     <ConnectionNotice connected={result.connected} />
 
     <section className="cards" aria-label="Experiment state">
-      <div className="card"><div className="card-label">Experiment state</div><div className="metric metric-small">Design required</div><div className="metric-note">No variant has been approved</div></div>
+      <div className="card"><div className="card-label">Experiment state</div><div className="metric metric-small">Paired retest ready</div><div className="metric-note">Variant B is registered and awaiting collection</div></div>
       <div className="card"><div className="card-label">Control</div><div className="metric metric-small">Current page</div><div className="metric-note">Keep unchanged for comparison</div></div>
-      <div className="card"><div className="card-label">Variant</div><div className="metric metric-small">Draft only</div><div className="metric-note">Requires human review and PR</div></div>
+      <div className="card"><div className="card-label">Variant</div><div className="metric metric-small">Variant B ready</div><div className="metric-note">Separate target, same prompt set</div></div>
       <div className="card"><div className="card-label">Success measure</div><div className="metric metric-small">Citation rate</div><div className="metric-note">Observed Exa checks, with denominator</div></div>
     </section>
 
@@ -29,6 +29,6 @@ export default async function ExperimentsPage() {
       <div className="panel panel-pad"><div className="panel-head panel-head-tight"><span className="panel-title">Guardrails</span><span className="panel-meta">no automatic publishing</span></div><div className="experiment-list"><div><strong>Evidence first</strong><span>A variant must reference stored observation IDs.</span></div><div><strong>One change</strong><span>Keep the test narrow enough to explain a result.</span></div><div><strong>Negative results count</strong><span>0% citation is a valid baseline, not a reason to rewrite the record.</span></div></div></div>
     </section>
 
-    <section className="panel architecture"><div className="panel-title">How an experiment moves through the system</div><div className="flow"><div className="flow-step">Baseline<br /><small>stored run</small></div><div className="arrow">→</div><div className="flow-step">Finding<br /><small>evidence-linked</small></div><div className="arrow">→</div><div className="flow-step">Variant PR<br /><small>CI + preview</small></div><div className="arrow">→</div><div className="flow-step">Retest<br /><small>same prompts</small></div></div><div className="notice">This screen defines the experiment. It does not claim that a variant exists, a lift has occurred, or that production can be changed automatically.</div></section>
+    <section className="panel architecture"><div className="panel-title">How an experiment moves through the system</div><div className="flow"><div className="flow-step">Baseline<br /><small>stored control</small></div><div className="arrow">→</div><div className="flow-step">Finding<br /><small>evidence-linked</small></div><div className="arrow">→</div><div className="flow-step">Variant B<br /><small>approved page</small></div><div className="arrow">→</div><div className="flow-step">Paired retest<br /><small>same prompts</small></div></div><div className="notice">The paired cron creates separate control and Variant B runs linked by one comparison key. It records outcomes but does not claim a lift or publish another page automatically.</div></section>
   </ObservatoryShell>;
 }

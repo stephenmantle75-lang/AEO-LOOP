@@ -21,6 +21,33 @@ The runner accepts a topic key, not an arbitrary URL or prompt. This keeps
 manual tests inside the approved experiment set and prevents an operator or
 caller from turning the endpoint into an unrestricted proxy.
 
+The scheduled daily route remains bounded by `AEO_MAX_EXA_PROMPTS` (one prompt
+when unset). The paired manual experiment route uses the complete fixed prompt
+set by default (ten prompts for the SEO/AEO experiment). Set
+`AEO_EXPERIMENT_MAX_EXA_PROMPTS` to a lower value when a cheaper smoke run is
+deliberately needed. Both sides of a pair always use the same limit.
+
+For the SEO/AEO experiment, use the paired runner below. It collects the
+frozen control and Variant B sequentially, so several comparison batches can
+be run in one day without waiting for the daily cron. The original
+single-topic endpoint remains available for other approved topics.
+
+## Paired control / Variant B endpoint
+
+```text
+POST /api/runs/comparison
+Authorization: Bearer $CRON_SECRET
+```
+
+The endpoint accepts no body. It always runs the approved pair:
+
+- Control: `seo-vs-aeo-portfolio`
+- Variant: `seo-vs-aeo-portfolio-variant-b`
+
+Each pair uses two `experiment_retest` runs with separate IDs and a unique
+`comparisonKey`. The control and variant are executed sequentially because
+the database overlap guard allows only one active observation run at a time.
+
 ## Endpoint contract
 
 ```text
@@ -69,8 +96,9 @@ experiment:<topic-key>:<started-at>:<random-id>
 3. Run one topic at a time with the same `CRON_SECRET` already used by the
    protected daily route. Do not paste the secret into shell history or chat.
 4. Open `/runs` and the returned `/runs/<runId>` route in the Observatory.
-5. Compare Firecrawl inspectability, Exa results, citation status, duration,
-   cost, and report persistence with the daily control run.
+5. Compare Firecrawl inspectability, each Exa query, result count, target result
+   position, citation status, duration, cost, and report persistence with the
+   daily control run.
 6. Keep the current SEO/AEO topic as the control when testing a different
    topic. Do not interpret a different topic as a content-lift experiment.
 
@@ -82,6 +110,22 @@ curl -X POST "$AEO_LOOP_URL/api/runs/experiment" \
   -H "Content-Type: application/json" \
   --data '{"topicKey":"self-improving-website"}'
 ```
+
+Run a paired comparison batch:
+
+```bash
+curl -X POST "$AEO_LOOP_URL/api/runs/comparison" \
+  -H "Authorization: Bearer $CRON_SECRET"
+```
+
+Repeat only after the previous response completes. Use the returned control
+and variant run IDs, plus the shared comparison key, when reviewing the
+results in the Observatory.
+
+On each run detail page, an Exa observation now reports whether the target was
+returned in the result set and its result position when matched. This is still
+a synthetic search-presence measurement, not proof that a generated answer
+would cite the page.
 
 The endpoint does not create Linear issues, send Slack/Zapier messages, edit
 portfolio files, or deploy code. Those remain separate human-approved phases.
@@ -122,3 +166,13 @@ flowchart LR
 
 This is the next ANT-36 testable slice: it proves the evidence-to-finding
 boundary on demand while the durable persistence flag remains disabled.
+
+## State-aware review output
+
+The deterministic analysis preview uses the run's comparison role when one is
+present. A control run recommends preserving the control until the paired
+comparison is reviewed. A Variant B run recommends comparing the pair and,
+when both remain uncited, reviewing authority and discovery gaps. It does not
+recommend creating Variant B again. Older persisted analysis snapshots retain
+their original versioned text; a new collection creates the state-aware
+version.

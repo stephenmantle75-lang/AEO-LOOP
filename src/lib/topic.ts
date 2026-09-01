@@ -99,8 +99,22 @@ export function experimentRunKey(topicKey: string, startedAt: string, nonce: str
   return `experiment:${topicKey}:${startedAt}:${nonce}`;
 }
 
-export function promptLimit(topic: TopicDefinition): string[] {
-  const configured = Number.parseInt(process.env.AEO_MAX_EXA_PROMPTS ?? "1", 10);
-  const limit = Number.isFinite(configured) ? Math.min(Math.max(configured, 1), topic.prompts.length) : 1;
+export function dailyComparisonKey(dateKey: string): string {
+  return `seo-vs-aeo:daily:${dateKey}`;
+}
+
+function boundedPromptLimit(topic: TopicDefinition, rawValue: string | number | undefined, fallback: number): string[] {
+  const configured = typeof rawValue === "number" ? rawValue : Number.parseInt(rawValue ?? String(fallback), 10);
+  const limit = Number.isFinite(configured) ? Math.min(Math.max(configured, 1), topic.prompts.length) : fallback;
   return topic.prompts.slice(0, limit);
+}
+
+/** Keep scheduled collection cheap and predictable unless explicitly expanded. */
+export function promptLimit(topic: TopicDefinition, override?: number): string[] {
+  return boundedPromptLimit(topic, override ?? process.env.AEO_MAX_EXA_PROMPTS, 1);
+}
+
+/** Manual paired experiments use the complete fixed prompt set by default. */
+export function experimentPromptLimit(topic: TopicDefinition): string[] {
+  return boundedPromptLimit(topic, process.env.AEO_EXPERIMENT_MAX_EXA_PROMPTS, topic.prompts.length);
 }

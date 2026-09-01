@@ -74,3 +74,17 @@ GitHub Actions receives no production provider credentials for the current
 quality gate. The application runtime continues to keep `CRON_SECRET`,
 `SUPABASE_SERVICE_ROLE_KEY`, `FIRECRAWL_API_KEY`, and `EXA_API_KEY` in Vercel
 Production environment variables only.
+
+## Provider output boundary
+
+Provider responses are treated as untrusted input. Citation links are accepted
+only when they are valid HTTPS URLs without embedded credentials; rejected links
+are counted in the observation metrics and are not stored as citations. Raw
+provider or database exception text is not rendered by the Observatory. The
+collector stores stable operational messages, while the page boundary allows
+only a small explicit list of safe messages and falls back to a generic
+instruction to inspect server logs.
+
+This keeps a useful diagnosis visible — for example, an Exa HTTP 429 or a
+Firecrawl retry failure — without exposing provider internals, database schema
+details, tokens, or request secrets in HTML.

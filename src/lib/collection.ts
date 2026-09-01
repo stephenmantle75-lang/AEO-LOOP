@@ -1,7 +1,7 @@
 import { getServerEnv } from "./env";
 import { scrapeTargetPage, searchWithExa, type PageObservation } from "./collectors";
 import { completeRun, insertObservation, claimDailyRun, claimExperimentRun, startRunHeartbeat, touchRunHeartbeat, type ClaimResult } from "./runs";
-import { experimentRunKey, promptLimit, seoVsAeoTopic, topicForKey, type TopicDefinition } from "./topic";
+import { dailyComparisonKey, experimentPromptLimit, experimentRunKey, promptLimit, seoVsAeoTopic, seoVsAeoVariantTopic, topicForKey, type TopicDefinition } from "./topic";
 import { createServiceClient } from "./supabase";
 import { persistClosedRunReport } from "./reporting-persistence";
 import { persistClosedRunAnalysis } from "./analysis-persistence";
@@ -68,6 +68,9 @@ type CollectionConfig = {
   topic: TopicDefinition;
   runKey: string;
   runType: CollectionResult["runType"];
+  comparisonKey?: string;
+  comparisonRole?: "control" | "variant";
+  promptLimitOverride?: number;
   claim: (client: ReturnType<typeof createServiceClient>, runKey: string, sources: string[], metadata: Record<string, unknown>) => Promise<ClaimResult>;
 };
 
@@ -77,11 +80,13 @@ async function runTopicObservation(config: CollectionConfig): Promise<Collection
   const client = createServiceClient();
   const startedAt = Date.now();
   const sources = ["firecrawl", "exa"];
-  const prompts = promptLimit(config.topic);
+  const prompts = config.promptLimitOverride === undefined ? promptLimit(config.topic) : promptLimit(config.topic, config.promptLimitOverride);
   const claim = await config.claim(client, config.runKey, sources, {
     topicKey: config.topic.key,
     promptLimit: prompts.length,
     targetUrl: config.topic.targetUrl,
+    ...(config.comparisonKey ? { comparisonKey: config.comparisonKey } : {}),
+    ...(config.comparisonRole ? { comparisonRole: config.comparisonRole } : {}),
     reportingTimeZone: env.reportingTimeZone,
     reportingDate: reportingDateKey(new Date(), env.reportingTimeZone),
     monthlyProviderBudgetUsd: env.monthlyProviderBudgetUsd ?? null,
@@ -139,7 +144,7 @@ async function runTopicObservation(config: CollectionConfig): Promise<Collection
       return { runId, runType: config.runType, topicKey: config.topic.key, status, observations, analysisStatus, reportStatus: "failed" };
     }
   } catch (error) {
-    await completeRun(client, runId, "failed", startedAt, sources, costUsd, error instanceof Error ? error.message : "Unknown collection error");
+    await completeRun(client, runId, "failed", startedAt, sources, costUsd, "Collection failed; inspect server logs");
     throw error;
   } finally {
     await stopHeartbeat();
@@ -165,5 +170,89 @@ export async function runExperimentObservation(topicKey: string): Promise<Collec
     runKey: experimentRunKey(topic.key, startedAt, crypto.randomUUID()),
     runType: "experiment_retest",
     claim: claimExperimentRun,
+  });
+}
+
+function notStartedResult(topicKey: string, reason: string): CollectionResult {
+  return {
+    runId: "",
+    runType: "experiment_retest",
+    topicKey,
+    status: "not_started",
+    observations: 0,
+    reason,
+  };
+}
+
+export type DailyComparisonResult = {
+  comparisonKey: string;
+  control: CollectionResult;
+  variant: CollectionResult;
+};
+
+type PairedComparisonConfig = {
+  comparisonKey: string;
+  controlRunKey: string;
+  controlRunType: CollectionResult["runType"];
+  controlClaim: CollectionConfig["claim"];
+  variantRunKey: string;
+  promptLimitOverride?: number;
+};
+
+async function runPairedComparison(config: PairedComparisonConfig): Promise<DailyComparisonResult> {
+  const control = await runTopicObservation({
+    topic: seoVsAeoTopic,
+    runKey: config.controlRunKey,
+    runType: config.controlRunType,
+    comparisonKey: config.comparisonKey,
+    comparisonRole: "control",
+    promptLimitOverride: config.promptLimitOverride,
+    claim: config.controlClaim,
+  });
+
+  if (control.reason === "overlap") {
+    return {
+      comparisonKey: config.comparisonKey,
+      control,
+      variant: notStartedResult(seoVsAeoVariantTopic.key, "control_run_overlap"),
+    };
+  }
+
+  const variant = await runTopicObservation({
+    topic: seoVsAeoVariantTopic,
+    runKey: config.variantRunKey,
+    runType: "experiment_retest",
+    comparisonKey: config.comparisonKey,
+    comparisonRole: "variant",
+    promptLimitOverride: config.promptLimitOverride,
+    claim: claimExperimentRun,
+  });
+
+  return { comparisonKey: config.comparisonKey, control, variant };
+}
+
+export async function runDailyComparison(): Promise<DailyComparisonResult> {
+  const env = getServerEnv();
+  const dateKey = reportingDateKey(new Date(), env.reportingTimeZone);
+  return runPairedComparison({
+    comparisonKey: dailyComparisonKey(dateKey),
+    controlRunKey: `daily-observation:${dateKey}`,
+    controlRunType: "daily_observation",
+    controlClaim: claimDailyRun,
+    variantRunKey: experimentRunKey(seoVsAeoVariantTopic.key, dateKey, "daily-comparison"),
+  });
+}
+
+export async function runPairedExperimentObservation(): Promise<DailyComparisonResult> {
+  const startedAt = new Date().toISOString();
+  const nonce = crypto.randomUUID();
+  const comparisonKey = `seo-vs-aeo:manual:${startedAt}:${nonce}`;
+  return runPairedComparison({
+    comparisonKey,
+    controlRunKey: experimentRunKey(seoVsAeoTopic.key, startedAt, `${nonce}:control`),
+    controlRunType: "experiment_retest",
+    controlClaim: claimExperimentRun,
+    variantRunKey: experimentRunKey(seoVsAeoVariantTopic.key, startedAt, `${nonce}:variant`),
+    promptLimitOverride: experimentPromptLimit(seoVsAeoTopic).length,
   });
 }

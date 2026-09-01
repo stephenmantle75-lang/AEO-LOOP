@@ -136,9 +136,9 @@ export async function scrapeTargetPage(targetUrl: string): Promise<PageObservati
       metrics: { configured: true, statusCode, title, description, contentCharacters: markdown.length, linkCount: links.length, rejectedLinkCount: rawLinks.length - links.length, attempts, retryCount: attempts - 1 },
       ...(statusCode === 200 && intendedPage ? {} : { errorMessage: "Target page did not return an inspectable document" }),
     };
-  } catch (error) {
+  } catch {
     const retryCount = Math.max(0, attempts - 1);
-    return { status: "failed", citationUrls: [], citations: [], metrics: { attempts: attempts || 1, retryCount }, errorMessage: error instanceof Error ? error.message : "Unknown Firecrawl error" };
+    return { status: "failed", citationUrls: [], citations: [], metrics: { attempts: attempts || 1, retryCount }, errorMessage: "Firecrawl request failed after retries" };
   }
 }
 
@@ -173,6 +173,7 @@ export async function searchWithExa(prompt: string, targetUrl: string): Promise<
       .join("\n\n")
       .slice(0, 12000);
     const citationFound = citations.some((citation) => urlMatches(targetUrl, citation.url));
+    const matchedCitation = citations.find((citation) => urlMatches(targetUrl, citation.url));
     const output = isRecord(payload.output) ? payload.output : {};
     const grounding = Array.isArray(output.grounding) ? output.grounding.filter(isRecord) : [];
     const groundedCitations = grounding.flatMap((item) => (Array.isArray(item.citations) ? item.citations.filter(isRecord) : []));
@@ -186,11 +187,23 @@ export async function searchWithExa(prompt: string, targetUrl: string): Promise<
       answerText,
       citationUrls: [...new Set([...citations.map((citation) => citation.url), ...groundedUrls])],
       citations,
-      metrics: { configured: true, resultCount: results.length, citationFound, rejectedCitationCount: rawCitations.length - citations.length, requestId: text(payload.requestId), costDollars: isRecord(payload.costDollars) ? payload.costDollars : undefined, attempts, retryCount: attempts - 1 },
+      metrics: {
+        configured: true,
+        resultCount: results.length,
+        citationFound,
+        targetResultPosition: matchedCitation?.position ?? null,
+        targetResultTitle: matchedCitation?.title ?? null,
+        retrieval: "exa_search_result",
+        rejectedCitationCount: rawCitations.length - citations.length,
+        requestId: text(payload.requestId),
+        costDollars: isRecord(payload.costDollars) ? payload.costDollars : undefined,
+        attempts,
+        retryCount: attempts - 1,
+      },
       confidence: results.length > 0 ? 0.8 : 0.2,
     };
-  } catch (error) {
+  } catch {
     const retryCount = Math.max(0, attempts - 1);
-    return { status: "failed", citationUrls: [], citations: [], metrics: { attempts: attempts || 1, retryCount }, errorMessage: error instanceof Error ? error.message : "Unknown Exa error" };
+    return { status: "failed", citationUrls: [], citations: [], metrics: { attempts: attempts || 1, retryCount }, errorMessage: "Exa request failed after retries" };
   }
 }

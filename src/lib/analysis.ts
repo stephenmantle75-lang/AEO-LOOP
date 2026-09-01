@@ -37,8 +37,22 @@ export type AnalysisRecordPayload = AnalysisMetadata & {
   findings: DraftFinding[];
 };
 
-export const DRAFT_ANALYSIS_AGENT_VERSION = "deterministic-review-v1";
-export const DRAFT_ANALYSIS_PROMPT_VERSION = "evidence-to-finding.v1";
+export const DRAFT_ANALYSIS_AGENT_VERSION = "deterministic-review-v2";
+export const DRAFT_ANALYSIS_PROMPT_VERSION = "evidence-to-finding.v2";
+
+function citationGapRecommendation(run: RunRow, topicKey: string): string {
+  const comparisonRole = run.metadata.comparisonRole;
+  const isVariant = comparisonRole === "variant" || topicKey === "seo-vs-aeo-portfolio-variant-b";
+  if (isVariant) {
+    return "Compare this Variant B retest with its paired control before making another page change. If both remain uncited, review the returned result gap, authority and discovery gaps next.";
+  }
+
+  if (comparisonRole === "control") {
+    return "Keep the control unchanged and compare this baseline with the paired Variant B run before proposing another implementation change.";
+  }
+
+  return "Create a separately deployed answer-page variant with a concise answer-first block, explicit SEO/AEO comparison, firsthand evidence, and an FAQ; keep the current page as the control and retest both URLs.";
+}
 
 /**
  * Produces review-only findings from stored observations.
@@ -80,7 +94,7 @@ export function buildDraftFindings({ run, observations }: { run: RunRow; observa
       kind: "citation_gap",
       title: "No target citation in the current prompt checks",
       summary: `${uncited.length} of ${observedExa.length} observed Exa prompt check${observedExa.length === 1 ? "" : "s"} did not cite the target page. This is an evidence-backed baseline, not proof that the page is technically broken.`,
-      recommendation: "Create a separately deployed answer-page variant with a concise answer-first block, explicit SEO/AEO comparison, firsthand evidence, and an FAQ; keep the current page as the control and retest both URLs.",
+      recommendation: citationGapRecommendation(run, uncited[0].topic_key),
       priority: "medium",
       evidenceIds: uncited.map((observation) => observation.id),
       confidence: 0.84,
