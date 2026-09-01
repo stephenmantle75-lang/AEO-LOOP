@@ -27,6 +27,37 @@ type FindingAlertRow = {
   attempt_count: number;
 };
 
+type DeliveryWrite = { error?: { message?: string } | null };
+
+/** Delivery state must never turn a successful Slack post into a crashed cron. */
+async function safeDeliveryWrite(context: string, write: () => PromiseLike<DeliveryWrite>): Promise<void> {
+  try {
+    const result = await write();
+    if (result.error) logServerError(context, result.error);
+  } catch (error) {
+    logServerError(context, error);
+  }
+}
+
+async function markReportRowFailed(client: SupabaseClient, row: OutboxRow, error: string): Promise<void> {
+  const now = new Date().toISOString();
+  await safeDeliveryWrite("report_outbox failure write failed", () =>
+    client.from("report_outbox").update({ status: "failed", last_error: error, attempt_count: row.attempt_count + 1 }).eq("id", row.id),
+  );
+  await safeDeliveryWrite("report delivery failure event write failed", () =>
+    client.from("delivery_events").upsert(
+      { report_id: row.report_id, outbox_id: row.id, event_id: row.event_id, channel: "slack", status: "failed", last_error: error, created_at: now },
+      { onConflict: "event_id,channel" },
+    ),
+  );
+}
+
+async function markFindingRowFailed(client: SupabaseClient, row: FindingAlertRow, error: string): Promise<void> {
+  await safeDeliveryWrite("finding delivery failure write failed", () =>
+    client.from("finding_delivery_events").update({ status: "failed", last_error: error, attempt_count: row.attempt_count + 1 }).eq("id", row.id),
+  );
+}
+
 /** Claim one queued outbox row so two overlapping cron runs can't both send it. */
 async function claimOutboxRow(client: SupabaseClient, id: string): Promise<boolean> {
   const { data, error } = await client
@@ -57,37 +88,48 @@ export async function deliverQueuedReports(
   }
 
   for (const row of rows as OutboxRow[]) {
-    if (!(await claimOutboxRow(client, row.id))) {
-      summary.skipped += 1;
-      continue;
-    }
-    const { text, blocks } = formatDailyPulseMessage(row.payload);
-    const result = await postSlackMessage({ token: config.token, channel: config.channel, text, blocks });
-    const now = new Date().toISOString();
-    if (result.ok) {
-      await client.from("report_outbox").update({ status: "sent", delivered_at: now }).eq("id", row.id);
-      await client
-        .from("delivery_events")
-        .upsert(
-          { report_id: row.report_id, outbox_id: row.id, event_id: row.event_id, channel: "slack", status: "sent", external_id: result.ts, delivered_at: now },
-          { onConflict: "event_id,channel" },
+    let claimed = false;
+    try {
+      claimed = await claimOutboxRow(client, row.id);
+      if (!claimed) {
+        summary.skipped += 1;
+        continue;
+      }
+
+      let message: ReturnType<typeof formatDailyPulseMessage>;
+      try {
+        message = formatDailyPulseMessage(row.payload);
+      } catch {
+        await markReportRowFailed(client, row, "invalid_report_payload");
+        console.error("Slack report preparation failed", { outboxId: row.id, error: "invalid_report_payload" });
+        summary.failed += 1;
+        continue;
+      }
+
+      const result = await postSlackMessage({ token: config.token, channel: config.channel, ...message });
+      const now = new Date().toISOString();
+      if (result.ok) {
+        await safeDeliveryWrite("report_outbox sent-state write failed", () => client.from("report_outbox").update({ status: "sent", delivered_at: now }).eq("id", row.id));
+        await safeDeliveryWrite("report delivery sent-event write failed", () =>
+          client.from("delivery_events").upsert(
+            { report_id: row.report_id, outbox_id: row.id, event_id: row.event_id, channel: "slack", status: "sent", external_id: result.ts, delivered_at: now },
+            { onConflict: "event_id,channel" },
+          ),
         );
-      summary.sent += 1;
-    } else {
-      await client
-        .from("report_outbox")
-        .update({ status: "failed", last_error: result.error, attempt_count: row.attempt_count + 1 })
-        .eq("id", row.id);
-      await client
-        .from("delivery_events")
-        .upsert(
-          { report_id: row.report_id, outbox_id: row.id, event_id: row.event_id, channel: "slack", status: "failed", last_error: result.error },
-          { onConflict: "event_id,channel" },
-        );
-      // Slack's error codes (invalid_auth, not_in_channel, ...) are short, safe enum
-      // strings — fine to log directly, unlike the DB errors above which go through
-      // logServerError to keep provider/schema details out of logs.
-      console.error("Slack report send failed", { outboxId: row.id, error: result.error });
+        summary.sent += 1;
+      } else {
+        await markReportRowFailed(client, row, result.error);
+        // Slack's error codes (invalid_auth, not_in_channel, ...) are short, safe enum
+        // strings — fine to log directly, unlike the DB errors above which go through
+        // logServerError to keep provider/schema details out of logs.
+        console.error("Slack report send failed", { outboxId: row.id, error: result.error });
+        summary.failed += 1;
+      }
+    } catch (error) {
+      // A malformed row, transient client exception, or unexpected formatter change
+      // must not prevent later queued reports from being attempted.
+      if (claimed) await markReportRowFailed(client, row, "delivery_processing_error");
+      logServerError("Slack report delivery row failed", error);
       summary.failed += 1;
     }
   }
@@ -114,31 +156,48 @@ export async function deliverQueuedFindingAlerts(
   }
 
   for (const row of rows as FindingAlertRow[]) {
-    const { data: claimed } = await client
-      .from("finding_delivery_events")
-      .update({ status: "processing" })
-      .eq("id", row.id)
-      .eq("status", "queued")
-      .select("id");
-    if (!claimed?.length) {
-      summary.skipped += 1;
-      continue;
-    }
-    const text = formatFindingAlertText({ ...row.payload, siteOrigin: config.siteOrigin });
-    const result = await postSlackMessage({ token: config.token, channel: config.channel, text });
-    const now = new Date().toISOString();
-    if (result.ok) {
-      await client
+    let claimed = false;
+    try {
+      const { data: claimedRows } = await client
         .from("finding_delivery_events")
-        .update({ status: "sent", external_id: result.ts, delivered_at: now })
-        .eq("id", row.id);
-      summary.sent += 1;
-    } else {
-      await client
-        .from("finding_delivery_events")
-        .update({ status: "failed", last_error: result.error, attempt_count: row.attempt_count + 1 })
-        .eq("id", row.id);
-      console.error("Slack finding alert send failed", { rowId: row.id, error: result.error });
+        .update({ status: "processing" })
+        .eq("id", row.id)
+        .eq("status", "queued")
+        .select("id");
+      if (!claimedRows?.length) {
+        summary.skipped += 1;
+        continue;
+      }
+      claimed = true;
+
+      let text: string;
+      try {
+        if (!row.payload || typeof row.payload.title !== "string" || typeof row.payload.priority !== "string" || typeof row.payload.dashboardPath !== "string") {
+          throw new Error("finding payload shape is invalid");
+        }
+        text = formatFindingAlertText({ ...row.payload, siteOrigin: config.siteOrigin });
+      } catch {
+        await markFindingRowFailed(client, row, "invalid_finding_payload");
+        console.error("Slack finding preparation failed", { rowId: row.id, error: "invalid_finding_payload" });
+        summary.failed += 1;
+        continue;
+      }
+
+      const result = await postSlackMessage({ token: config.token, channel: config.channel, text });
+      const now = new Date().toISOString();
+      if (result.ok) {
+        await safeDeliveryWrite("finding delivery sent-state write failed", () =>
+          client.from("finding_delivery_events").update({ status: "sent", external_id: result.ts, delivered_at: now }).eq("id", row.id),
+        );
+        summary.sent += 1;
+      } else {
+        await markFindingRowFailed(client, row, result.error);
+        console.error("Slack finding alert send failed", { rowId: row.id, error: result.error });
+        summary.failed += 1;
+      }
+    } catch (error) {
+      if (claimed) await markFindingRowFailed(client, row, "delivery_processing_error");
+      logServerError("Slack finding delivery row failed", error);
       summary.failed += 1;
     }
   }

@@ -107,6 +107,23 @@ describe("deliverQueuedReports", () => {
     expect(summary).toEqual({ sent: 0, failed: 0, skipped: 0, readError: true });
     expect(fetchSpy).not.toHaveBeenCalled();
   });
+
+  it("marks a malformed report failed and continues with later queued reports", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const fetchSpy = vi.fn().mockResolvedValue({ status: 200, json: async () => ({ ok: true, ts: "111.3" }) });
+    vi.stubGlobal("fetch", fetchSpy);
+    const rows = [
+      { id: "outbox-bad", report_id: "report-bad", event_id: "daily-pulse:bad", status: "queued", payload: null, attempt_count: 0 },
+      { id: "outbox-good", report_id: "report-good", event_id: "daily-pulse:good", status: "queued", payload: report, attempt_count: 0 },
+    ];
+    const client = fakeClient({ report_outbox: { select: { data: rows, error: null }, update: [{ data: [{ id: "claimed" }], error: null }] } });
+
+    const summary = await deliverQueuedReports(client, config);
+
+    expect(summary).toEqual({ sent: 1, failed: 1, skipped: 0, readError: false });
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(consoleError).toHaveBeenCalledWith("Slack report preparation failed", { outboxId: "outbox-bad", error: "invalid_report_payload" });
+  });
 });
 
 describe("deliverQueuedFindingAlerts", () => {
@@ -140,5 +157,22 @@ describe("deliverQueuedFindingAlerts", () => {
     const summary = await deliverQueuedFindingAlerts(client, config);
     expect(summary).toEqual({ sent: 0, failed: 0, skipped: 0, readError: true });
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("marks a malformed finding failed and continues with later queued alerts", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const fetchSpy = vi.fn().mockResolvedValue({ status: 200, json: async () => ({ ok: true, ts: "222.2" }) });
+    vi.stubGlobal("fetch", fetchSpy);
+    const rows = [
+      { id: "fde-bad", event_id: "finding.created:bad", status: "queued", payload: undefined, attempt_count: 0 },
+      { id: "fde-good", event_id: "finding.created:good", status: "queued", payload: { title: "Improve answer-page evidence", priority: "high", dashboardPath: "/findings/f-3" }, attempt_count: 0 },
+    ];
+    const client = fakeClient({ finding_delivery_events: { select: { data: rows, error: null }, update: [{ data: [{ id: "claimed" }], error: null }] } });
+
+    const summary = await deliverQueuedFindingAlerts(client, config);
+
+    expect(summary).toEqual({ sent: 1, failed: 1, skipped: 0, readError: false });
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(consoleError).toHaveBeenCalledWith("Slack finding preparation failed", { rowId: "fde-bad", error: "invalid_finding_payload" });
   });
 });
