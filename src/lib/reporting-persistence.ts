@@ -56,11 +56,14 @@ export function toReportPayload(report: DailyPulseReport): DailyPulseReport {
   };
 }
 
-async function loadReportInputs(client: SupabaseClient, runId: string): Promise<{ run: RunRow; observations: ObservationRow[]; findings: FindingRow[] }> {
+export async function loadReportInputs(client: SupabaseClient, runId: string): Promise<{ run: RunRow; observations: ObservationRow[]; findings: FindingRow[] }> {
   const [runResult, observationsResult, findingsResult] = await Promise.all([
     client.from("runs").select(runSelect).eq("id", runId).single(),
     client.from("observations").select(observationSelect).eq("run_id", runId).order("created_at", { ascending: true }),
-    client.from("findings").select(findingSelect).eq("run_id", runId).order("created_at", { ascending: true }),
+    // Findings are a current work queue, not run-local evidence. A report's
+    // NEXT DECISIONS section must therefore match the dashboard's global open
+    // finding count, including findings created by an earlier run.
+    client.from("findings").select(findingSelect).order("created_at", { ascending: true }),
   ]);
 
   if (runResult.error) throw new Error(`Report run could not be loaded: ${runResult.error.message}`);

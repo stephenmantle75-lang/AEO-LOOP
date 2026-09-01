@@ -93,7 +93,7 @@ export function formatDailyPulseMessage(report: DailyPulseReport): { text: strin
 
   const actionLines = report.actions.length
     ? report.actions.map((action) => `• [${action.priority}] ${action.title}`).join("\n")
-    : "_No open findings._";
+    : "_No open findings were present when this report was generated._";
 
   // Slack rejects the whole message with invalid_blocks if a button's url
   // isn't absolute — a relative link (seen in production when the report's

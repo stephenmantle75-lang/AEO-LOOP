@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildDailyPulseReport, buildTopicRunSnapshots } from "../src/lib/reporting";
-import { toReportPayload } from "../src/lib/reporting-persistence";
+import { loadReportInputs, toReportPayload } from "../src/lib/reporting-persistence";
 import { buildDraftAnalysis, buildDraftFindings, toAnalysisRecordPayload } from "../src/lib/analysis";
 import type { FindingRow, ObservationRow, RunRow } from "../src/lib/observatory";
 
@@ -117,6 +117,33 @@ describe("daily pulse report", () => {
       "schemaVersion",
       "window",
     ].sort());
+  });
+
+  it("loads open findings across runs so persisted reports match the dashboard work queue", async () => {
+    const calls: string[] = [];
+    const query = (table: string, result: unknown) => {
+      const chain: any = Promise.resolve(result);
+      for (const method of ["select", "eq", "order"]) chain[method] = (...args: unknown[]) => {
+        if (method === "eq") calls.push(`${table}.${String(args[0])}:${String(args[1])}`);
+        return chain;
+      };
+      chain.single = () => chain;
+      return chain;
+    };
+    const client = {
+      from: (table: string) => {
+        if (table === "runs") return { select: () => query(table, { data: run, error: null }) };
+        if (table === "observations") return { select: () => query(table, { data: [observation({})], error: null }) };
+        return { select: () => query(table, { data: [finding({ run_id: "older-run" })], error: null }) };
+      },
+    };
+
+    const inputs = await loadReportInputs(client as never, run.id);
+
+    expect(inputs.findings).toHaveLength(1);
+    expect(inputs.findings[0].run_id).toBe("older-run");
+    expect(calls).toContain("runs.id:run-1");
+    expect(calls).not.toContain("findings.run_id:run-1");
   });
 });
 

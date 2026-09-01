@@ -70,6 +70,11 @@ The daily pulse must still be emitted for a partial run, but it must clearly
 label missing providers and stale metrics. A provider failure must never be
 silently represented as a zero.
 
+The `NEXT DECISIONS` section uses the current global `findings` work queue,
+not only findings created by the run being reported. This keeps the persisted
+report, Slack pulse, overview, and report-detail page aligned when an open
+finding is still awaiting review after the run that created it.
+
 ## Daily pulse layout
 
 The first version should follow the hierarchy shown in the supplied Slack
@@ -261,8 +266,11 @@ own token independently, so setting only one goes half-live rather than
 waiting on both. Tests: `tests/slack.test.ts` (message
 formatting, Slack success/error/network-failure), `tests/slack-delivery.test.ts`
 (sent, a failed run still ships its pulse, a Slack-side send error, the
-claim race that prevents a duplicate send, and a Supabase read failure
-surfacing as `readError: true` instead of a silent zero summary).
+(claim race that prevents a duplicate send, malformed queued rows being
+isolated so later rows still run, and a Supabase read failure surfacing as
+`readError: true` instead of a silent zero summary). Delivery-state writes are
+best effort after the Slack result is known: a persistence blip is logged and
+does not turn a successfully posted Slack message into a crashed cron.
 
 **Live status — 30 August 2026.** `AEO_SLACK_DELIVERY_ENABLED=true` and both
 bot tokens are set on Vercel. A production test run returned `reports:

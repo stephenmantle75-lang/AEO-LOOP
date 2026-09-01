@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ConnectionNotice, ObservatoryShell, PageHeader } from "../../_components/observatory-shell";
 import { buildDailyPulseReport } from "@/lib/reporting";
-import { deliveryStatusLabel, deliveryStatusTone, formatDate, getFindingCount, getReportDeliveryStatus, getRunDetail, statusLabel } from "@/lib/observatory";
+import { deliveryStatusLabel, deliveryStatusTone, formatDate, getFindingCount, getFindings, getReportDeliveryStatus, getRunDetail, statusLabel } from "@/lib/observatory";
 
 export const dynamic = "force-dynamic";
 
@@ -10,12 +10,12 @@ type Props = { params: Promise<{ id: string }> };
 
 export default async function ReportDetailPage({ params }: Props) {
   const { id } = await params;
-  const [runResult, findingCount] = await Promise.all([getRunDetail(id), getFindingCount()]);
-  const { run, observations, findings } = runResult.data;
+  const [runResult, findingCount, findingsResult] = await Promise.all([getRunDetail(id), getFindingCount(), getFindings()]);
+  const { run, observations } = runResult.data;
   if (!run) notFound();
   const delivery = await getReportDeliveryStatus(run.id);
 
-  const report = buildDailyPulseReport({ run, observations, findings });
+  const report = buildDailyPulseReport({ run, observations, findings: findingsResult.data });
   const citationKpi = report.kpis.find((kpi) => kpi.key === "synthetic_citation_rate");
 
   return <ObservatoryShell active="runs" findingCount={findingCount}>
