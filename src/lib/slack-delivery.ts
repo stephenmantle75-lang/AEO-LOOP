@@ -141,22 +141,6 @@ export async function deliverQueuedReports(
         if (claimedRows.length === 1) console.error("Slack report preparation failed", { outboxId: claimedRows[0].id, error: "invalid_report_payload" });
         else console.error("Slack report preparation failed", { outboxIds: claimedRows.map((row) => row.id), error: "invalid_report_payload" });
         summary.failed += claimedRows.length;
-  for (const row of rows as OutboxRow[]) {
-    let claimed = false;
-    try {
-      claimed = await claimOutboxRow(client, row.id);
-      if (!claimed) {
-        summary.skipped += 1;
-        continue;
-      }
-
-      let message: ReturnType<typeof formatDailyPulseMessage>;
-      try {
-        message = formatDailyPulseMessage(row.payload);
-      } catch {
-        await markReportRowFailed(client, row, "invalid_report_payload");
-        console.error("Slack report preparation failed", { outboxId: row.id, error: "invalid_report_payload" });
-        summary.failed += 1;
         continue;
       }
 
@@ -173,21 +157,6 @@ export async function deliverQueuedReports(
         if (claimedRows.length === 1) console.error("Slack report send failed", { outboxId: claimedRows[0].id, error: result.error });
         else console.error("Slack report send failed", { outboxIds: claimedRows.map((row) => row.id), error: result.error });
         summary.failed += claimedRows.length;
-        await safeDeliveryWrite("report_outbox sent-state write failed", () => client.from("report_outbox").update({ status: "sent", delivered_at: now }).eq("id", row.id));
-        await safeDeliveryWrite("report delivery sent-event write failed", () =>
-          client.from("delivery_events").upsert(
-            { report_id: row.report_id, outbox_id: row.id, event_id: row.event_id, channel: "slack", status: "sent", external_id: result.ts, delivered_at: now },
-            { onConflict: "event_id,channel" },
-          ),
-        );
-        summary.sent += 1;
-      } else {
-        await markReportRowFailed(client, row, result.error);
-        // Slack's error codes (invalid_auth, not_in_channel, ...) are short, safe enum
-        // strings — fine to log directly, unlike the DB errors above which go through
-        // logServerError to keep provider/schema details out of logs.
-        console.error("Slack report send failed", { outboxId: row.id, error: result.error });
-        summary.failed += 1;
       }
     } catch (error) {
       // A malformed row, transient client exception, or unexpected formatter change
@@ -195,9 +164,6 @@ export async function deliverQueuedReports(
       await Promise.all(claimedRows.map((row) => markReportRowFailed(client, row, "delivery_processing_error")));
       logServerError("Slack report delivery row failed", error);
       summary.failed += claimedRows.length;
-      if (claimed) await markReportRowFailed(client, row, "delivery_processing_error");
-      logServerError("Slack report delivery row failed", error);
-      summary.failed += 1;
     }
   }
   return summary;
