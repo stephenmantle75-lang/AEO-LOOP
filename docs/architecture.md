@@ -109,7 +109,7 @@ Supabase. It exposes provider health, citation rate from observed Exa checks,
 run duration/cost, target URL, and explicit provider errors. The page performs
 no provider calls and never turns a failed observation into a zero.
 
-The Observatory also derives a versioned `daily-pulse.v1` report from stored
+The Observatory also derives a versioned `daily-pulse.v2` report from stored
 run, observation, and finding rows. The overview previews its KPI and funnel;
 `/reports/[id]` can reproduce the report from a stored run without calling a
 provider again. `/findings` lists persisted findings and shows deterministic,

@@ -9,7 +9,7 @@ database as real results.
 
 ## Current implementation slice
 
-`src/lib/reporting.ts` now derives the `daily-pulse.v1` shape from stored
+`src/lib/reporting.ts` now derives the `daily-pulse.v2` shape from stored
 `runs`, `observations`, and `findings` records. The overview previews the
 derived KPI and funnel, `/reports/[id]` provides a reproducible report review
 surface, and `/findings` provides a database-backed persisted-finding list plus
@@ -19,7 +19,7 @@ applied to production, and typed helpers define
 
 The cron close path has a disabled-by-default switch,
 `AEO_REPORT_PERSISTENCE_ENABLED=true`. When enabled, a completed observation
-run is reloaded from Supabase, converted into the sanitized `daily-pulse.v1`
+run is reloaded from Supabase, converted into the sanitized `daily-pulse.v2`
 contract, and written to `reports` with a matching queued row in
 `report_outbox`. A report persistence error does not rewrite a successfully
 completed observation run as failed; the cron response returns
@@ -94,6 +94,15 @@ FUNNEL
 Discovered → cited → clicked → engaged
      10            2        —          —
 
+LOOP TO DATE
+Runs to date: 8 total · 4 days running · started 26 Aug
+Run status: 7 succeeded · 1 partial
+Evidence: 24 observations · 1 failed
+Work queue: 3 open findings
+Slack delivery: 9 sent · 1 failed
+Errors: 1 failed observation · 1 failed delivery
+Provider cost: $0.056 recorded
+
 BIGGEST LEAK
 Citation → click is not measurable yet.
 Next action: connect Search Console and analytics before claiming traffic lift.
@@ -117,7 +126,7 @@ the raw observations.
 
 ```json
 {
-  "schemaVersion": "daily-pulse.v1",
+  "schemaVersion": "daily-pulse.v2",
   "eventId": "daily-pulse:2026-08-26:run-123",
   "reportType": "daily_pulse",
   "runId": "run-123",
@@ -167,6 +176,19 @@ the raw observations.
 
 The example values are illustrative only. Tests and seed data must not use
 them as live evidence.
+
+Version 2 adds two operational fields to the stored payload:
+
+- `comparison`: the shared paired-test key and whether the report is the
+  `control` or `variant`. This lets delivery combine a paired daily check
+  without deleting either run's individual evidence.
+- `portfolio`: all-time totals calculated from Supabase at report generation:
+  run count and status, elapsed days, observation failures, open findings,
+  recorded provider cost, and Slack delivery state.
+
+The totals are an operational snapshot as of the run close. If an auxiliary
+aggregate read fails, the core report still persists and the Slack message
+omits the totals rather than inventing zeroes.
 
 ## Visual report artifacts
 
@@ -238,7 +260,8 @@ run closes, enqueue one outbox event by `event_id`, and use
 
 `src/lib/slack.ts` sends via a plain `fetch` to `chat.postMessage` — no new
 dependency. `src/lib/slack-delivery.ts` drains `report_outbox` (one rich
-pulse per report, Block Kit, formatted per the layout above) and the
+pulse per report, or one combined parent message for a paired control and
+Variant B, using Block Kit and the layout above) and the
 `channel = 'slack'` rows of `finding_delivery_events` (one short
 alert-with-link per approved finding, `🔍 finding [priority] — title. <link>`)
 into `#aeo-growth-loop`. Both queries claim a row (`status: queued →

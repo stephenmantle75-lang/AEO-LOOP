@@ -102,7 +102,7 @@ status and, for approval, creates findings.
 
 One sanitized, versioned report contract derived from a stored run. A report is
 reproducible from its `run_id` and has a unique `event_id` so retries do not
-create a second logical report. The JSON payload is the `daily-pulse.v1`
+create a second logical report. The JSON payload is the `daily-pulse.v2`
 contract; raw provider payloads and visitor-level analytics are excluded.
 
 ### `report_outbox`

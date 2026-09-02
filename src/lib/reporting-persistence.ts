@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DailyPulseReport } from "./reporting";
-import { buildDailyPulseReport } from "./reporting";
+import { buildDailyPulseReport, buildPortfolioStats, type PortfolioStats } from "./reporting";
 import type { FindingRow, ObservationRow, RunRow } from "./observatory";
 
 export type ReportRow = {
@@ -43,6 +43,7 @@ export function toReportPayload(report: DailyPulseReport): DailyPulseReport {
     reportType: report.reportType,
     runId: report.runId,
     health: report.health,
+    ...(report.comparison ? { comparison: { ...report.comparison } } : {}),
     window: { ...report.window },
     kpis: report.kpis.map((kpi) => ({ ...kpi })),
     funnel: {
@@ -53,10 +54,19 @@ export function toReportPayload(report: DailyPulseReport): DailyPulseReport {
     insights: report.insights.map((insight) => ({ ...insight })),
     actions: report.actions.map((action) => ({ ...action })),
     links: { ...report.links },
+    ...(report.portfolio
+      ? {
+          portfolio: {
+            ...report.portfolio,
+            runStatuses: { ...report.portfolio.runStatuses },
+            slackDelivery: { ...report.portfolio.slackDelivery },
+          },
+        }
+      : {}),
   };
 }
 
-export async function loadReportInputs(client: SupabaseClient, runId: string): Promise<{ run: RunRow; observations: ObservationRow[]; findings: FindingRow[] }> {
+export async function loadReportInputs(client: SupabaseClient, runId: string): Promise<{ run: RunRow; observations: ObservationRow[]; findings: FindingRow[]; portfolio?: PortfolioStats }> {
   const [runResult, observationsResult, findingsResult] = await Promise.all([
     client.from("runs").select(runSelect).eq("id", runId).single(),
     client.from("observations").select(observationSelect).eq("run_id", runId).order("created_at", { ascending: true }),
@@ -70,10 +80,37 @@ export async function loadReportInputs(client: SupabaseClient, runId: string): P
   if (observationsResult.error) throw new Error(`Report observations could not be loaded: ${observationsResult.error.message}`);
   if (findingsResult.error) throw new Error(`Report findings could not be loaded: ${findingsResult.error.message}`);
 
+  let portfolio: PortfolioStats | undefined;
+  try {
+    const [runsResult, allObservationsResult, outboxResult, findingDeliveriesResult] = await Promise.all([
+      client.from("runs").select("status, started_at, cost_usd"),
+      client.from("observations").select("status"),
+      client.from("report_outbox").select("status"),
+      client.from("finding_delivery_events").select("channel, status").eq("channel", "slack"),
+    ]);
+    if (runsResult.error) throw new Error(`Portfolio runs could not be loaded: ${runsResult.error.message}`);
+    if (allObservationsResult.error) throw new Error(`Portfolio observations could not be loaded: ${allObservationsResult.error.message}`);
+    if (outboxResult.error) throw new Error(`Portfolio report delivery could not be loaded: ${outboxResult.error.message}`);
+    if (findingDeliveriesResult.error) throw new Error(`Portfolio finding delivery could not be loaded: ${findingDeliveriesResult.error.message}`);
+    portfolio = buildPortfolioStats({
+      runs: (runsResult.data ?? []) as Pick<RunRow, "status" | "started_at" | "cost_usd">[],
+      observations: (allObservationsResult.data ?? []) as Pick<ObservationRow, "status">[],
+      findings: (findingsResult.data ?? []) as FindingRow[],
+      reportOutbox: (outboxResult.data ?? []) as Array<{ status: string }>,
+      findingDeliveries: (findingDeliveriesResult.data ?? []) as Array<{ channel: string; status: string }>,
+      asOf: runResult.data.completed_at ?? runResult.data.started_at,
+    });
+  } catch (error) {
+    // Aggregate context improves the report but must not make a valid run
+    // undeliverable when one auxiliary read has a transient failure.
+    console.error("Portfolio report totals unavailable", error);
+  }
+
   return {
     run: runResult.data as RunRow,
     observations: (observationsResult.data ?? []) as ObservationRow[],
     findings: (findingsResult.data ?? []) as FindingRow[],
+    portfolio,
   };
 }
 

@@ -15,10 +15,43 @@ export type AnswerPageContent = {
   answer: string;
   sections: Array<{
     heading: string;
+    id?: string;
     paragraphs: string[];
     bullets?: string[];
+    figure?: {
+      src: string;
+      alt: string;
+      caption: string;
+    };
+    evidence?: string;
   }>;
   faqs: FaqItem[];
+  editorial?: {
+    hero: {
+      src: string;
+      alt: string;
+    };
+    readTime: string;
+    authorRole: string;
+    authorProof: string;
+    authorImage?: string;
+    evidenceCards: Array<{
+      label: string;
+      value: string;
+      detail: string;
+    }>;
+    methodology: string;
+    related: Array<{
+      href: string;
+      label: string;
+      description: string;
+    }>;
+    cta: {
+      label: string;
+      href: string;
+      description: string;
+    };
+  };
 };
 
 const siteUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://aeo-loop.vercel.app";

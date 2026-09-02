@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { checkSlackAuth, formatDailyPulseMessage, formatFindingAlertText, postSlackMessage } from "../src/lib/slack";
+import { checkSlackAuth, formatCombinedDailyPulseMessage, formatDailyPulseMessage, formatFindingAlertText, postSlackMessage } from "../src/lib/slack";
 import type { DailyPulseReport } from "../src/lib/reporting";
 
 const report: DailyPulseReport = {
@@ -54,6 +54,41 @@ describe("formatDailyPulseMessage", () => {
     const { blocks } = formatDailyPulseMessage(mixed);
     const actions = blocks.find((block) => block.type === "actions") as { elements: { url: string }[] } | undefined;
     expect(actions?.elements.map((element) => element.url)).toEqual([report.links.dashboard, report.links.report]);
+  });
+});
+
+describe("formatCombinedDailyPulseMessage", () => {
+  it("combines control and Variant B into one message with loop-to-date totals", () => {
+    const base = {
+      ...report,
+      health: "succeeded",
+      portfolio: {
+        totalRuns: 8,
+        daysRunning: 4,
+        startedAt: "2026-08-29T08:00:00.000Z",
+        runStatuses: { running: 0, succeeded: 7, partial: 1, failed: 0, queued: 0 },
+        totalObservations: 24,
+        failedObservations: 1,
+        openFindings: 3,
+        totalCostUsd: 0.056,
+        slackDelivery: { sent: 9, failed: 1, queued: 0, processing: 0 },
+      },
+      comparison: { key: "seo-vs-aeo:daily:2026-08-29", role: "control" as const },
+    };
+    const variant = { ...base, runId: "run-variant", eventId: "daily-pulse:run-variant", comparison: { ...base.comparison, role: "variant" as const } };
+
+    const { text, blocks } = formatCombinedDailyPulseMessage([base, variant]);
+    const flat = JSON.stringify(blocks);
+
+    expect(text).toContain("control + Variant B");
+    expect(flat).toContain("CONTROL");
+    expect(flat).toContain("VARIANT B");
+    expect(flat).toContain("8 total");
+    expect(flat).toContain("4 days");
+    expect(flat).toContain("24 observations");
+    expect(flat).toContain("1 failed delivery");
+    expect(flat).toContain("Open control report");
+    expect(flat).toContain("Open Variant B report");
   });
 });
 

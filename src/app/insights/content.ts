@@ -118,12 +118,15 @@ export const answerPages: Record<string, AnswerPageContent> = {
     answer: "SEO helps a portfolio be discovered and ranked in search results. AEO helps the same portfolio provide clear, extractable answers that an AI or answer engine can understand and cite. They overlap in quality and crawlability, but they measure different outcomes.",
     sections: [
       {
+        id: "seo-and-aeo-ask-different-questions",
         heading: "SEO and AEO answer different questions",
         paragraphs: [
           "SEO asks whether the right person can find a page through a search engine. AEO asks whether an answer engine can retrieve the page, understand its claims, and attribute the answer to it. A strong portfolio should be easy for both people and machines to interpret.",
         ],
+        evidence: "First-party evidence: this page is designed as a crawlable, canonical answer surface inside the AEO LOOP project.",
       },
       {
+        id: "seo-versus-aeo",
         heading: "SEO versus AEO",
         paragraphs: ["The distinction is easiest to see as a comparison:"],
         bullets: [
@@ -132,19 +135,33 @@ export const answerPages: Record<string, AnswerPageContent> = {
           "SEO foundation: crawlable pages, useful content, links, performance, and technical quality.",
           "AEO addition: direct answers, clear headings, self-contained passages, source context, and repeatable citation checks.",
         ],
+        figure: {
+          src: "/insights/aeo/seo-aeo-article.png",
+          alt: "Editorial comparison diagram showing how SEO helps people find a page and AEO helps answer engines explain it.",
+          caption: "One page can do both jobs when the route to the page and the answer inside it are clear.",
+        },
       },
       {
+        id: "what-an-aeo-ready-page-includes",
         heading: "What an AEO-ready portfolio page includes",
         paragraphs: [
           "A portfolio page should state what the work is, who it was for, what changed, and what evidence supports the result. Use a clear title, a direct opening answer, descriptive headings, concise paragraphs, meaningful internal links, and structured data that accurately describes the page.",
           "Do not create thin pages for every keyword or write only for a crawler. Helpful, people-first content remains the foundation. The answer structure should make the page clearer for an employer while also making the main claims easier to retrieve.",
         ],
+        evidence: "The AEO LOOP article template keeps the human explanation and machine-readable structure in the same page rather than creating separate versions.",
       },
       {
+        id: "how-to-measure-aeo",
         heading: "How to measure AEO without overstating the result",
         paragraphs: [
           "Run a fixed set of prompts repeatedly and record whether the target page was mentioned or cited. Report the numerator, denominator, provider, query, date, and freshness. Keep synthetic discovery evidence separate from Search Console and human analytics, because those signals describe different parts of the journey.",
         ],
+        figure: {
+          src: "/insights/aeo/observatory-overview.png",
+          alt: "AEO LOOP Observatory overview showing a successful run, citation rate, evidence captured, and open findings.",
+          caption: "The Observatory stores the measurement context so a citation result can be reviewed instead of treated as a floating number.",
+        },
+        evidence: "The dashboard screenshot is a real project artifact. It demonstrates the measurement surface, not a guaranteed citation outcome.",
       },
     ],
     faqs: [
@@ -157,5 +174,30 @@ export const answerPages: Record<string, AnswerPageContent> = {
         answer: "Rewrite the opening of a project page so it directly answers what the project does, who it helps, and what evidence demonstrates the outcome. Then measure whether the page is retrieved and cited for fixed prompts.",
       },
     ],
+    editorial: {
+      hero: {
+        src: "/insights/aeo/observatory-overview.png",
+        alt: "AEO LOOP Observatory dashboard showing the evidence-backed measurement system.",
+      },
+      readTime: "5 min read",
+      authorRole: "Website designer and builder creating evidence-backed improvement systems.",
+      authorProof: "This article documents the AEO LOOP project and its real workflow: collection, evidence storage, human review, delivery, and retest.",
+      authorImage: "/insights/stephen.png",
+      evidenceCards: [
+        { label: "SEO job", value: "Find the page", detail: "Search visibility, crawlability, performance, and useful links." },
+        { label: "AEO job", value: "Explain the answer", detail: "Direct language, question headings, evidence, and attribution." },
+        { label: "Project proof", value: "Measure the gap", detail: "The Observatory stores provider, query, date, status, and result." },
+      ],
+      methodology: "AEO LOOP keeps discovery checks, page-integrity checks, human analytics, and production outcomes as separate signals. A captured observation proves what was measured at a point in time. It does not prove that one page will always be cited.",
+      related: [
+        { href: "/insights/self-improving-websites", label: "How can a website improve itself safely over time?", description: "The controlled loop behind collection, review, release, and retest." },
+        { href: "/insights/github-linear-slack-workflows", label: "How should GitHub, Linear, and Slack work together?", description: "The ownership model connecting evidence to action." },
+      ],
+      cta: {
+        label: "See the evidence behind the answer",
+        href: "/",
+        description: "Open the Observatory to review runs, sources, findings, and delivery state from stored data.",
+      },
+    },
   },
 };

@@ -61,6 +61,33 @@ describe("deliverQueuedReports", () => {
     expect(summary).toEqual({ sent: 1, failed: 0, skipped: 0, readError: false });
   });
 
+  it("sends a paired control and Variant B as one Slack message", async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({ status: 200, json: async () => ({ ok: true, ts: "111.4" }) });
+    vi.stubGlobal("fetch", fetchSpy);
+    const control = {
+      ...report,
+      comparison: { key: "seo-vs-aeo:daily:2026-09-02", role: "control" as const },
+    };
+    const variant = {
+      ...report,
+      runId: "run-variant",
+      eventId: "daily-pulse:run-variant",
+      comparison: { key: "seo-vs-aeo:daily:2026-09-02", role: "variant" as const },
+    };
+    const rows = [
+      { id: "outbox-control", report_id: "report-control", event_id: control.eventId, status: "queued", payload: control, attempt_count: 0 },
+      { id: "outbox-variant", report_id: "report-variant", event_id: variant.eventId, status: "queued", payload: variant, attempt_count: 0 },
+    ];
+    const client = fakeClient({ report_outbox: { select: { data: rows, error: null }, update: [{ data: [{ id: "claimed" }], error: null }] } });
+
+    const summary = await deliverQueuedReports(client, config);
+
+    expect(summary).toEqual({ sent: 2, failed: 0, skipped: 0, readError: false });
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(JSON.stringify(fetchSpy.mock.calls[0][1])).toContain("CONTROL");
+    expect(JSON.stringify(fetchSpy.mock.calls[0][1])).toContain("VARIANT B");
+  });
+
   it("a failed run still ships its (labeled-failed) pulse", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ status: 200, json: async () => ({ ok: true, ts: "111.2" }) }));
     const outboxRow = { id: "outbox-2", report_id: "report-2", event_id: "daily-pulse:run-2", status: "queued", payload: { ...report, health: "failed" }, attempt_count: 0 };

@@ -21,11 +21,15 @@ export type ReportKpi = {
 };
 
 export type DailyPulseReport = {
-  schemaVersion: "daily-pulse.v1";
+  schemaVersion: "daily-pulse.v1" | "daily-pulse.v2";
   eventId: string;
   reportType: "daily_pulse";
   runId: string;
   health: string;
+  comparison?: {
+    key: string;
+    role: "control" | "variant";
+  };
   window: {
     start: string;
     end: string;
@@ -44,7 +48,81 @@ export type DailyPulseReport = {
   insights: Array<{ title: string; status: string }>;
   actions: Array<{ title: string; status: string; priority: string }>;
   links: { dashboard: string; run: string; report: string };
+  portfolio?: PortfolioStats;
 };
+
+export type PortfolioStats = {
+  totalRuns: number;
+  daysRunning: number | null;
+  startedAt: string | null;
+  runStatuses: { running: number; succeeded: number; partial: number; failed: number; queued: number };
+  totalObservations: number;
+  failedObservations: number;
+  openFindings: number;
+  totalCostUsd: number;
+  slackDelivery: { sent: number; failed: number; queued: number; processing: number };
+};
+
+export type PortfolioRunSummary = Pick<RunRow, "status" | "started_at" | "cost_usd">;
+export type PortfolioObservationSummary = Pick<ObservationRow, "status">;
+export type PortfolioOutboxSummary = { status: string };
+export type PortfolioFindingDeliverySummary = { channel: string; status: string };
+
+function daysBetweenInclusive(start: string | null, end: string): number | null {
+  if (!start) return null;
+  const startMs = Date.parse(start);
+  const endMs = Date.parse(end);
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) return null;
+  return Math.max(1, Math.floor((endMs - startMs) / 86_400_000) + 1);
+}
+
+export function buildPortfolioStats({
+  runs,
+  observations,
+  findings,
+  reportOutbox,
+  findingDeliveries,
+  asOf,
+}: {
+  runs: PortfolioRunSummary[];
+  observations: PortfolioObservationSummary[];
+  findings: FindingRow[];
+  reportOutbox: PortfolioOutboxSummary[];
+  findingDeliveries: PortfolioFindingDeliverySummary[];
+  asOf: string;
+}): PortfolioStats {
+  const startedAt = runs.map((run) => run.started_at).filter(Boolean).sort()[0] ?? null;
+  const runStatuses = { running: 0, succeeded: 0, partial: 0, failed: 0, queued: 0 };
+  for (const run of runs) {
+    if (run.status in runStatuses) runStatuses[run.status as keyof typeof runStatuses] += 1;
+  }
+
+  const slackStatuses = [...reportOutbox, ...findingDeliveries.filter((delivery) => delivery.channel === "slack")].reduce(
+    (summary, row) => {
+      if (row.status === "sent") summary.sent += 1;
+      if (row.status === "failed") summary.failed += 1;
+      if (row.status === "queued") summary.queued += 1;
+      if (row.status === "processing") summary.processing += 1;
+      return summary;
+    },
+    { sent: 0, failed: 0, queued: 0, processing: 0 },
+  );
+
+  return {
+    totalRuns: runs.length,
+    daysRunning: daysBetweenInclusive(startedAt, asOf),
+    startedAt,
+    runStatuses,
+    totalObservations: observations.length,
+    failedObservations: observations.filter((observation) => observation.status === "failed").length,
+    openFindings: findings.filter((finding) => ["new", "approved", "in_progress"].includes(finding.status)).length,
+    totalCostUsd: runs.reduce((total, run) => {
+      const cost = Number(run.cost_usd);
+      return Number.isFinite(cost) && cost >= 0 ? total + cost : total;
+    }, 0),
+    slackDelivery: slackStatuses,
+  };
+}
 
 export type TopicRunSnapshot = {
   runId: string;
@@ -96,11 +174,13 @@ export function buildDailyPulseReport({
   run,
   observations,
   findings,
+  portfolio,
   dashboardOrigin = "",
 }: {
   run: RunRow;
   observations: ObservationRow[];
   findings: FindingRow[];
+  portfolio?: PortfolioStats;
   dashboardOrigin?: string;
 }): DailyPulseReport {
   const exaChecks = observations.filter(
@@ -114,12 +194,16 @@ export function buildDailyPulseReport({
   const dashboardPath = dashboardOrigin.replace(/\/$/, "");
   const openFindings = findings.filter((finding) => finding.status === "new");
 
+  const comparisonKey = typeof run.metadata?.comparisonKey === "string" ? run.metadata.comparisonKey : null;
+  const comparisonRole = run.metadata?.comparisonRole === "control" || run.metadata?.comparisonRole === "variant" ? run.metadata.comparisonRole : null;
+
   return {
-    schemaVersion: "daily-pulse.v1",
+    schemaVersion: "daily-pulse.v2",
     eventId: `daily-pulse:${run.id}`,
     reportType: "daily_pulse",
     runId: run.id,
     health: run.status,
+    ...(comparisonKey && comparisonRole ? { comparison: { key: comparisonKey, role: comparisonRole } } : {}),
     window: {
       start: sevenDaysBefore(run.started_at),
       end: run.completed_at ?? run.started_at,
@@ -177,5 +261,6 @@ export function buildDailyPulseReport({
       run: `${dashboardPath}/runs/${run.id}`,
       report: `${dashboardPath}/reports/${run.id}`,
     },
+    ...(portfolio ? { portfolio } : {}),
   };
 }

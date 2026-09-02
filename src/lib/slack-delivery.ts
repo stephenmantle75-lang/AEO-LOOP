@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DailyPulseReport } from "./reporting";
-import { formatDailyPulseMessage, formatFindingAlertText, postSlackMessage } from "./slack";
+import { formatCombinedDailyPulseMessage, formatDailyPulseMessage, formatFindingAlertText, postSlackMessage } from "./slack";
 import { logServerError } from "./api-response";
 
 export type SlackDeliveryConfig = { token: string; channel: string; siteOrigin: string };
@@ -52,6 +52,16 @@ async function markReportRowFailed(client: SupabaseClient, row: OutboxRow, error
   );
 }
 
+async function markReportRowSent(client: SupabaseClient, row: OutboxRow, ts: string, now: string): Promise<void> {
+  await safeDeliveryWrite("report_outbox sent-state write failed", () => client.from("report_outbox").update({ status: "sent", delivered_at: now }).eq("id", row.id));
+  await safeDeliveryWrite("report delivery sent-event write failed", () =>
+    client.from("delivery_events").upsert(
+      { report_id: row.report_id, outbox_id: row.id, event_id: row.event_id, channel: "slack", status: "sent", external_id: ts, delivered_at: now },
+      { onConflict: "event_id,channel" },
+    ),
+  );
+}
+
 async function markFindingRowFailed(client: SupabaseClient, row: FindingAlertRow, error: string): Promise<void> {
   await safeDeliveryWrite("finding delivery failure write failed", () =>
     client.from("finding_delivery_events").update({ status: "failed", last_error: error, attempt_count: row.attempt_count + 1 }).eq("id", row.id),
@@ -67,6 +77,31 @@ async function claimOutboxRow(client: SupabaseClient, id: string): Promise<boole
     .eq("status", "queued")
     .select("id");
   return !error && (data?.length ?? 0) > 0;
+}
+
+function reportGroupKey(row: OutboxRow): string | null {
+  const key = row.payload?.comparison?.key;
+  return typeof key === "string" && key ? key : null;
+}
+
+function groupReportRows(rows: OutboxRow[]): OutboxRow[][] {
+  const groups: OutboxRow[][] = [];
+  const byComparison = new Map<string, OutboxRow[]>();
+  for (const row of rows) {
+    const key = reportGroupKey(row);
+    if (!key) {
+      groups.push([row]);
+      continue;
+    }
+    const existing = byComparison.get(key);
+    if (existing) existing.push(row);
+    else {
+      const group = [row];
+      byComparison.set(key, group);
+      groups.push(group);
+    }
+  }
+  return groups;
 }
 
 /** Drain `report_outbox` (daily pulse) into Slack, recording each attempt in `delivery_events`. */
@@ -87,50 +122,48 @@ export async function deliverQueuedReports(
     return { ...summary, readError: true };
   }
 
-  for (const row of rows as OutboxRow[]) {
-    let claimed = false;
+  for (const group of groupReportRows(rows as OutboxRow[])) {
+    const claimedRows: OutboxRow[] = [];
     try {
-      claimed = await claimOutboxRow(client, row.id);
-      if (!claimed) {
-        summary.skipped += 1;
-        continue;
+      for (const row of group) {
+        if (await claimOutboxRow(client, row.id)) claimedRows.push(row);
+        else summary.skipped += 1;
       }
+      if (!claimedRows.length) continue;
 
       let message: ReturnType<typeof formatDailyPulseMessage>;
       try {
-        message = formatDailyPulseMessage(row.payload);
+        message = claimedRows.length === 1 && !claimedRows[0].payload?.comparison
+          ? formatDailyPulseMessage(claimedRows[0].payload)
+          : formatCombinedDailyPulseMessage(claimedRows.map((row) => row.payload));
       } catch {
-        await markReportRowFailed(client, row, "invalid_report_payload");
-        console.error("Slack report preparation failed", { outboxId: row.id, error: "invalid_report_payload" });
-        summary.failed += 1;
+        await Promise.all(claimedRows.map((row) => markReportRowFailed(client, row, "invalid_report_payload")));
+        if (claimedRows.length === 1) console.error("Slack report preparation failed", { outboxId: claimedRows[0].id, error: "invalid_report_payload" });
+        else console.error("Slack report preparation failed", { outboxIds: claimedRows.map((row) => row.id), error: "invalid_report_payload" });
+        summary.failed += claimedRows.length;
         continue;
       }
 
       const result = await postSlackMessage({ token: config.token, channel: config.channel, ...message });
       const now = new Date().toISOString();
       if (result.ok) {
-        await safeDeliveryWrite("report_outbox sent-state write failed", () => client.from("report_outbox").update({ status: "sent", delivered_at: now }).eq("id", row.id));
-        await safeDeliveryWrite("report delivery sent-event write failed", () =>
-          client.from("delivery_events").upsert(
-            { report_id: row.report_id, outbox_id: row.id, event_id: row.event_id, channel: "slack", status: "sent", external_id: result.ts, delivered_at: now },
-            { onConflict: "event_id,channel" },
-          ),
-        );
-        summary.sent += 1;
+        await Promise.all(claimedRows.map((row) => markReportRowSent(client, row, result.ts, now)));
+        summary.sent += claimedRows.length;
       } else {
-        await markReportRowFailed(client, row, result.error);
+        await Promise.all(claimedRows.map((row) => markReportRowFailed(client, row, result.error)));
         // Slack's error codes (invalid_auth, not_in_channel, ...) are short, safe enum
         // strings — fine to log directly, unlike the DB errors above which go through
         // logServerError to keep provider/schema details out of logs.
-        console.error("Slack report send failed", { outboxId: row.id, error: result.error });
-        summary.failed += 1;
+        if (claimedRows.length === 1) console.error("Slack report send failed", { outboxId: claimedRows[0].id, error: result.error });
+        else console.error("Slack report send failed", { outboxIds: claimedRows.map((row) => row.id), error: result.error });
+        summary.failed += claimedRows.length;
       }
     } catch (error) {
       // A malformed row, transient client exception, or unexpected formatter change
       // must not prevent later queued reports from being attempted.
-      if (claimed) await markReportRowFailed(client, row, "delivery_processing_error");
+      await Promise.all(claimedRows.map((row) => markReportRowFailed(client, row, "delivery_processing_error")));
       logServerError("Slack report delivery row failed", error);
-      summary.failed += 1;
+      summary.failed += claimedRows.length;
     }
   }
   return summary;
