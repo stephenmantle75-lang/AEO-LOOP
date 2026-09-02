@@ -67,6 +67,7 @@ export function toReportPayload(report: DailyPulseReport): DailyPulseReport {
 }
 
 export async function loadReportInputs(client: SupabaseClient, runId: string): Promise<{ run: RunRow; observations: ObservationRow[]; findings: FindingRow[]; portfolio?: PortfolioStats }> {
+export async function loadReportInputs(client: SupabaseClient, runId: string): Promise<{ run: RunRow; observations: ObservationRow[]; findings: FindingRow[] }> {
   const [runResult, observationsResult, findingsResult] = await Promise.all([
     client.from("runs").select(runSelect).eq("id", runId).single(),
     client.from("observations").select(observationSelect).eq("run_id", runId).order("created_at", { ascending: true }),
