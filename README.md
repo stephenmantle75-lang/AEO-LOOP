@@ -53,7 +53,7 @@ The database contract is live and the first application vertical slice is now pr
 - idempotent daily run claims serialized by a Postgres advisory lock;
 - a real-data overview showing the latest run, provider health, citation rate,
   cost, and evidence rows from Supabase;
-- a derived `daily-pulse.v1` report preview and `/reports/[id]` route that
+- a derived `daily-pulse.v2` report preview and `/reports/[id]` route that
   rebuilds KPI and funnel state from a stored run without recalling providers;
 - a `/findings` review surface that lists persisted findings and derives
   evidence-linked, draft-only recommendations from the latest stored run;

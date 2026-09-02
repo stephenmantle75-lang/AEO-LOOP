@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildDailyPulseReport, buildTopicRunSnapshots } from "../src/lib/reporting";
+import { buildDailyPulseReport, buildPortfolioStats, buildTopicRunSnapshots } from "../src/lib/reporting";
 import { loadReportInputs, toReportPayload } from "../src/lib/reporting-persistence";
 import { buildDraftAnalysis, buildDraftFindings, toAnalysisRecordPayload } from "../src/lib/analysis";
 import type { FindingRow, ObservationRow, RunRow } from "../src/lib/observatory";
@@ -74,7 +74,7 @@ describe("daily pulse report", () => {
       findings: [finding({})],
     });
 
-    expect(report.schemaVersion).toBe("daily-pulse.v1");
+    expect(report.schemaVersion).toBe("daily-pulse.v2");
     expect(report.kpis[0]).toMatchObject({ displayValue: "1/2", denominator: 2, delta: null, status: "observed" });
     expect(report.funnel.stages).toEqual([
       { key: "prompt_checks", label: "Prompt checks", value: 2, status: "observed" },
@@ -144,6 +144,36 @@ describe("daily pulse report", () => {
     expect(inputs.findings[0].run_id).toBe("older-run");
     expect(calls).toContain("runs.id:run-1");
     expect(calls).not.toContain("findings.run_id:run-1");
+  });
+});
+
+describe("portfolio report totals", () => {
+  it("counts all runs, elapsed days, evidence failures, open work, cost, and Slack delivery state", () => {
+    const stats = buildPortfolioStats({
+      runs: [
+        { status: "succeeded", started_at: "2026-08-29T08:00:00.000Z", cost_usd: 0.01 },
+        { status: "partial", started_at: "2026-08-30T08:00:00.000Z", cost_usd: "0.02" },
+        { status: "failed", started_at: "2026-09-01T08:00:00.000Z", cost_usd: null },
+        { status: "running", started_at: "2026-09-02T08:00:00.000Z", cost_usd: 0.03 },
+      ],
+      observations: [{ status: "observed" }, { status: "failed" }],
+      findings: [finding({ status: "new" }), finding({ id: "finding-2", status: "in_progress" }), finding({ id: "finding-3", status: "shipped" })],
+      reportOutbox: [{ status: "sent" }, { status: "failed" }, { status: "queued" }],
+      findingDeliveries: [{ channel: "slack", status: "sent" }, { channel: "linear", status: "failed" }, { channel: "slack", status: "processing" }],
+      asOf: "2026-09-02T08:00:00.000Z",
+    });
+
+    expect(stats).toEqual({
+      totalRuns: 4,
+      daysRunning: 5,
+      startedAt: "2026-08-29T08:00:00.000Z",
+      runStatuses: { running: 1, succeeded: 1, partial: 1, failed: 1, queued: 0 },
+      totalObservations: 2,
+      failedObservations: 1,
+      openFindings: 2,
+      totalCostUsd: 0.06,
+      slackDelivery: { sent: 2, failed: 1, queued: 1, processing: 1 },
+    });
   });
 });
 
