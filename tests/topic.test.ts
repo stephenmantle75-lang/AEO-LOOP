@@ -4,7 +4,7 @@ import { dailyComparisonKey, defaultAeoTargetUrl, defaultAeoVariantTargetUrl, ex
 describe("topic contract", () => {
   it("defaults to the public portfolio answer page", () => {
     expect(defaultAeoTargetUrl).toBe(
-      "https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio",
+      "https://www.stephenmantle.com/insights/seo-vs-aeo-portfolio",
     );
   });
 
@@ -44,7 +44,7 @@ describe("topic contract", () => {
       "github-linear-slack-website-loop",
     ]);
     expect(defaultAeoVariantTargetUrl).toBe(
-      "https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio-variant-b",
+      "https://www.stephenmantle.com/insights/seo-vs-aeo-portfolio-variant-b",
     );
     expect(seoVsAeoVariantTopic.targetUrl).toBe(defaultAeoVariantTargetUrl);
     expect(seoVsAeoVariantTopic.prompts).toEqual(seoVsAeoTopic.prompts);

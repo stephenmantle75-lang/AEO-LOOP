@@ -6,10 +6,10 @@ export type TopicDefinition = {
 };
 
 export const defaultAeoTargetUrl =
-  "https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio";
+  "https://www.stephenmantle.com/insights/seo-vs-aeo-portfolio";
 
 export const defaultAeoVariantTargetUrl =
-  "https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio-variant-b";
+  "https://www.stephenmantle.com/insights/seo-vs-aeo-portfolio-variant-b";
 
 export const seoVsAeoTopic: TopicDefinition = {
   key: "seo-vs-aeo-portfolio",
