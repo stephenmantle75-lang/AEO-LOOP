@@ -39,12 +39,14 @@ describe("topic contract", () => {
 
   it("uses a three-prompt daily coverage default and allows a bounded override", () => {
     delete process.env.AEO_DAILY_EXA_PROMPTS;
+    process.env.AEO_MAX_EXA_PROMPTS = "1";
     expect(dailyPromptLimit(seoVsAeoTopic)).toHaveLength(3);
     process.env.AEO_DAILY_EXA_PROMPTS = "999";
     expect(dailyPromptLimit(seoVsAeoTopic)).toHaveLength(10);
     process.env.AEO_DAILY_EXA_PROMPTS = "1";
     expect(dailyPromptLimit(seoVsAeoTopic)).toHaveLength(1);
     delete process.env.AEO_DAILY_EXA_PROMPTS;
+    delete process.env.AEO_MAX_EXA_PROMPTS;
   });
 
   it("uses the complete fixed prompt set for manual experiment runs by default", () => {

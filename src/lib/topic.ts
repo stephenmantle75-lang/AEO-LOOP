@@ -136,7 +136,7 @@ export function promptLimit(topic: TopicDefinition, override?: number): string[]
 export function dailyPromptLimit(topic: TopicDefinition, override?: number): string[] {
   return boundedPromptLimit(
     topic,
-    override ?? process.env.AEO_DAILY_EXA_PROMPTS ?? process.env.AEO_MAX_EXA_PROMPTS,
+    override ?? process.env.AEO_DAILY_EXA_PROMPTS,
     3,
   );
 }
