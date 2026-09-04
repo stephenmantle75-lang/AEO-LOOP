@@ -17,6 +17,7 @@ describe("daily comparison contract", () => {
     expect(collection).toContain("dailyComparisonKey");
     expect(collection).toContain("runPairedExperimentObservation");
     expect(collection).toContain("experimentPromptLimit");
+    expect(collection).toContain("dailyPromptLimit");
     expect(collection).toContain("promptLimitOverride");
     expect(collection).toContain("comparisonRole");
     expect(manualRoute).toContain("runPairedExperimentObservation");

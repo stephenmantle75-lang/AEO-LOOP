@@ -75,6 +75,13 @@ describe("daily pulse report", () => {
     });
 
     expect(report.schemaVersion).toBe("daily-pulse.v2");
+    expect(report.measurement).toEqual({
+      targetUrl: "https://example.com/answer",
+      targetHost: "example.com",
+      targetIsCanonical: false,
+      observedPromptChecks: 2,
+      expectedPromptChecks: null,
+    });
     expect(report.kpis[0]).toMatchObject({ displayValue: "1/2", denominator: 2, delta: null, status: "observed" });
     expect(report.funnel.stages).toEqual([
       { key: "prompt_checks", label: "Prompt checks", value: 2, status: "observed" },
@@ -111,6 +118,7 @@ describe("daily pulse report", () => {
       "insights",
       "kpis",
       "links",
+      "measurement",
       "providerHealth",
       "reportType",
       "runId",

@@ -1,4 +1,5 @@
 import type { FindingRow, ObservationRow, RunRow } from "./observatory";
+import { canonicalAeoHost } from "./topic";
 
 export type ReportStage = {
   key: string;
@@ -48,6 +49,13 @@ export type DailyPulseReport = {
   insights: Array<{ title: string; status: string }>;
   actions: Array<{ title: string; status: string; priority: string }>;
   links: { dashboard: string; run: string; report: string };
+  measurement?: {
+    targetUrl: string | null;
+    targetHost: string | null;
+    targetIsCanonical: boolean;
+    observedPromptChecks: number;
+    expectedPromptChecks: number | null;
+  };
   portfolio?: PortfolioStats;
 };
 
@@ -170,6 +178,15 @@ function latestObservation(observations: ObservationRow[]): ObservationRow | und
   return [...observations].sort((a, b) => b.observed_at.localeCompare(a.observed_at))[0];
 }
 
+function targetHost(targetUrl: string | null): string | null {
+  if (!targetUrl) return null;
+  try {
+    return new URL(targetUrl).hostname;
+  } catch {
+    return null;
+  }
+}
+
 export function buildDailyPulseReport({
   run,
   observations,
@@ -191,6 +208,9 @@ export function buildDailyPulseReport({
   const latest = latestObservation(observations);
   const citationRate = observedChecks.length ? citedChecks.length / observedChecks.length : null;
   const targetPage = observations.find((observation) => observation.provider === "firecrawl");
+  const measuredTargetUrl = targetPage?.target_url ?? exaChecks[0]?.target_url ?? null;
+  const measuredTargetHost = targetHost(measuredTargetUrl);
+  const expectedPromptChecks = typeof run.metadata?.promptLimit === "number" ? run.metadata.promptLimit : null;
   const dashboardPath = dashboardOrigin.replace(/\/$/, "");
   const openFindings = findings.filter((finding) => finding.status === "new");
 
@@ -260,6 +280,13 @@ export function buildDailyPulseReport({
       dashboard: dashboardPath || "/",
       run: `${dashboardPath}/runs/${run.id}`,
       report: `${dashboardPath}/reports/${run.id}`,
+    },
+    measurement: {
+      targetUrl: measuredTargetUrl,
+      targetHost: measuredTargetHost,
+      targetIsCanonical: measuredTargetHost === canonicalAeoHost,
+      observedPromptChecks: exaChecks.length,
+      expectedPromptChecks,
     },
     ...(portfolio ? { portfolio } : {}),
   };

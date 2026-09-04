@@ -108,6 +108,14 @@ function roleLabel(report: DailyPulseReport): string {
   return report.comparison?.role === "variant" ? "VARIANT B" : "CONTROL";
 }
 
+function measurementSummary(report: DailyPulseReport): string | null {
+  const measurement = report.measurement;
+  if (!measurement) return null;
+  const expected = measurement.expectedPromptChecks ?? measurement.observedPromptChecks;
+  const validity = measurement.targetIsCanonical ? "canonical target" : "⚠️ target mismatch";
+  return `🎯 Target: ${measurement.targetHost ?? "unknown host"} · ${validity}\n🧪 Coverage: ${measurement.observedPromptChecks}/${expected} prompts`;
+}
+
 /** Format the paired daily comparison as one Slack parent message. The two reports remain separate in Supabase. */
 export function formatCombinedDailyPulseMessage(reports: DailyPulseReport[]): { text: string; blocks: SlackBlock[] } {
   if (!reports.length) throw new Error("At least one report is required");
@@ -121,7 +129,11 @@ export function formatCombinedDailyPulseMessage(reports: DailyPulseReport[]): { 
     .map((report) => {
       const citation = report.kpis.find((kpi) => kpi.key === "synthetic_citation_rate");
       const integrity = report.kpis.find((kpi) => kpi.key === "target_page_integrity");
-      return `*${roleLabel(report)}* · Citation rate ${citation?.displayValue ?? "—"} · Target page ${integrity?.displayValue ?? "—"}`;
+      const measurement = report.measurement;
+      const coverage = measurement
+        ? ` · ${measurement.observedPromptChecks}/${measurement.expectedPromptChecks ?? measurement.observedPromptChecks} prompts · ${measurement.targetHost ?? "unknown host"}`
+        : "";
+      return `*${roleLabel(report)}* · Citation rate ${citation?.displayValue ?? "—"} · Target page ${integrity?.displayValue ?? "—"}${coverage}`;
     })
     .join("\n");
   const actionLines = [...new Map(ordered.flatMap((report) => report.actions).map((action) => [action.title, action])).values()];
@@ -186,6 +198,7 @@ export function formatDailyPulseMessage(report: DailyPulseReport): { text: strin
   const blocks: SlackBlock[] = [
     { type: "header", text: { type: "plain_text", text: `${healthLabel(report.health)} AEO LOOP PULSE · ${dateKey}` } },
     { type: "section", text: { type: "mrkdwn", text: `*CORE SIGNALS*\n${kpiLines}` } },
+    ...(measurementSummary(report) ? [{ type: "section", text: { type: "mrkdwn", text: `*MEASUREMENT CONTRACT*\n${measurementSummary(report)}` } }] : []),
     ...(formatPortfolioSummary(report.portfolio) ? [{ type: "section", text: { type: "mrkdwn", text: formatPortfolioSummary(report.portfolio)! } }] : []),
     { type: "section", text: { type: "mrkdwn", text: `*FUNNEL*\n${funnelLine}` } },
     { type: "section", text: { type: "mrkdwn", text: leakText } },

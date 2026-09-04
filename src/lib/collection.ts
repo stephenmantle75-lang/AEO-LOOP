@@ -1,7 +1,7 @@
 import { getServerEnv } from "./env";
 import { scrapeTargetPage, searchWithExa, type PageObservation } from "./collectors";
 import { completeRun, insertObservation, claimDailyRun, claimExperimentRun, startRunHeartbeat, touchRunHeartbeat, type ClaimResult } from "./runs";
-import { dailyComparisonKey, experimentPromptLimit, experimentRunKey, promptLimit, seoVsAeoTopic, seoVsAeoVariantTopic, topicForKey, type TopicDefinition } from "./topic";
+import { dailyComparisonKey, dailyPromptLimit, experimentPromptLimit, experimentRunKey, promptLimit, seoVsAeoTopic, seoVsAeoVariantTopic, topicForKey, type TopicDefinition } from "./topic";
 import { createServiceClient } from "./supabase";
 import { persistClosedRunReport } from "./reporting-persistence";
 import { persistClosedRunAnalysis } from "./analysis-persistence";
@@ -157,6 +157,7 @@ export async function runDailyObservation(): Promise<CollectionResult> {
     topic: seoVsAeoTopic,
     runKey: `daily-observation:${reportingDateKey(new Date(), env.reportingTimeZone)}`,
     runType: "daily_observation",
+    promptLimitOverride: dailyPromptLimit(seoVsAeoTopic).length,
     claim: claimDailyRun,
   });
 }
@@ -240,6 +241,7 @@ export async function runDailyComparison(): Promise<DailyComparisonResult> {
     controlRunType: "daily_observation",
     controlClaim: claimDailyRun,
     variantRunKey: experimentRunKey(seoVsAeoVariantTopic.key, dateKey, "daily-comparison"),
+    promptLimitOverride: dailyPromptLimit(seoVsAeoTopic).length,
   });
 }
 

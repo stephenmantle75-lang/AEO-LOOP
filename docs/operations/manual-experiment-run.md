@@ -21,9 +21,11 @@ The runner accepts a topic key, not an arbitrary URL or prompt. This keeps
 manual tests inside the approved experiment set and prevents an operator or
 caller from turning the endpoint into an unrestricted proxy.
 
-The scheduled daily route remains bounded by `AEO_MAX_EXA_PROMPTS` (one prompt
-when unset). The paired manual experiment route uses the complete fixed prompt
-set by default (ten prompts for the SEO/AEO experiment). Set
+The scheduled daily route uses `AEO_DAILY_EXA_PROMPTS` (three prompts when
+unset, bounded to the fixed prompt set). `AEO_MAX_EXA_PROMPTS` remains the
+fallback for other scheduled or single-topic collection. The paired manual
+experiment route uses the complete fixed prompt set by default (ten prompts for
+the SEO/AEO experiment). Set
 `AEO_EXPERIMENT_MAX_EXA_PROMPTS` to a lower value when a cheaper smoke run is
 deliberately needed. Both sides of a pair always use the same limit.
 
