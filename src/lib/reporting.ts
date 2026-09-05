@@ -46,9 +46,18 @@ export type DailyPulseReport = {
   };
   providerHealth: Array<{ provider: string; status: string; freshness: string | null }>;
   insights: Array<{ title: string; status: string }>;
-  actions: Array<{ title: string; status: string; priority: string }>;
+  actions: ReportAction[];
   links: { dashboard: string; run: string; report: string };
   portfolio?: PortfolioStats;
+};
+
+export type ReportAction = {
+  title: string;
+  status: string;
+  priority: string;
+  findingId?: string;
+  ageDays?: number | null;
+  ageLabel?: string;
 };
 
 export type PortfolioStats = {
@@ -170,6 +179,61 @@ function latestObservation(observations: ObservationRow[]): ObservationRow | und
   return [...observations].sort((a, b) => b.observed_at.localeCompare(a.observed_at))[0];
 }
 
+function actionKey(title: string): string {
+  return title.trim().replace(/\s+/g, " ").toLocaleLowerCase();
+}
+
+function findingAgeDays(createdAt: string, asOf: string): number | null {
+  const createdMs = Date.parse(createdAt);
+  const asOfMs = Date.parse(asOf);
+  if (!Number.isFinite(createdMs) || !Number.isFinite(asOfMs)) return null;
+  return Math.max(0, Math.floor((asOfMs - createdMs) / 86_400_000));
+}
+
+function findingAgeLabel(ageDays: number | null): string {
+  if (ageDays === null) return "open";
+  return ageDays === 0 ? "open today" : `open ${ageDays}d`;
+}
+
+function priorityRank(priority: string): number {
+  return priority === "high" ? 2 : priority === "medium" ? 1 : 0;
+}
+
+/**
+ * Turns the global open-finding queue into one stable action per decision.
+ * Findings are retained as the source of truth; only the report projection is
+ * deduplicated so historical database rows remain untouched.
+ */
+export function buildReportActions(findings: FindingRow[], asOf: string): ReportAction[] {
+  const actions = new Map<string, ReportAction>();
+  for (const finding of findings.filter((item) => item.status === "new")) {
+    const ageDays = findingAgeDays(finding.created_at, asOf);
+    const next: ReportAction = {
+      title: finding.title.trim(),
+      status: finding.status,
+      priority: finding.priority,
+      findingId: finding.id,
+      ageDays,
+      ageLabel: findingAgeLabel(ageDays),
+    };
+    const key = actionKey(next.title);
+    const current = actions.get(key);
+    if (!current || priorityRank(next.priority) > priorityRank(current.priority)) actions.set(key, next);
+  }
+  return [...actions.values()];
+}
+
+/** Normalize actions again at delivery time for older persisted reports. */
+export function dedupeReportActions(actions: ReportAction[]): ReportAction[] {
+  const deduped = new Map<string, ReportAction>();
+  for (const action of actions) {
+    const key = actionKey(action.title);
+    const current = deduped.get(key);
+    if (!current || priorityRank(action.priority) > priorityRank(current.priority)) deduped.set(key, action);
+  }
+  return [...deduped.values()];
+}
+
 export function buildDailyPulseReport({
   run,
   observations,
@@ -192,8 +256,6 @@ export function buildDailyPulseReport({
   const citationRate = observedChecks.length ? citedChecks.length / observedChecks.length : null;
   const targetPage = observations.find((observation) => observation.provider === "firecrawl");
   const dashboardPath = dashboardOrigin.replace(/\/$/, "");
-  const openFindings = findings.filter((finding) => finding.status === "new");
-
   const comparisonKey = typeof run.metadata?.comparisonKey === "string" ? run.metadata.comparisonKey : null;
   const comparisonRole = run.metadata?.comparisonRole === "control" || run.metadata?.comparisonRole === "variant" ? run.metadata.comparisonRole : null;
 
@@ -255,7 +317,7 @@ export function buildDailyPulseReport({
       return { provider, status: observation?.status ?? "not_run", freshness: observation?.observed_at ?? null };
     }),
     insights: [],
-    actions: openFindings.map((finding) => ({ title: finding.title, status: finding.status, priority: finding.priority })),
+    actions: buildReportActions(findings, run.completed_at ?? run.started_at),
     links: {
       dashboard: dashboardPath || "/",
       run: `${dashboardPath}/runs/${run.id}`,

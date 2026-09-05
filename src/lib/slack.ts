@@ -1,4 +1,4 @@
-import type { DailyPulseReport, PortfolioStats } from "./reporting";
+import { dedupeReportActions, type DailyPulseReport, type PortfolioStats, type ReportAction } from "./reporting";
 
 export type SlackBlock = Record<string, unknown>;
 
@@ -108,6 +108,11 @@ function roleLabel(report: DailyPulseReport): string {
   return report.comparison?.role === "variant" ? "VARIANT B" : "CONTROL";
 }
 
+function formatActionLine(action: ReportAction): string {
+  const age = action.ageLabel ? ` · ${action.ageLabel}` : "";
+  return `• [${action.priority}${age}] ${action.title}`;
+}
+
 /** Format the paired daily comparison as one Slack parent message. The two reports remain separate in Supabase. */
 export function formatCombinedDailyPulseMessage(reports: DailyPulseReport[]): { text: string; blocks: SlackBlock[] } {
   if (!reports.length) throw new Error("At least one report is required");
@@ -124,9 +129,9 @@ export function formatCombinedDailyPulseMessage(reports: DailyPulseReport[]): { 
       return `*${roleLabel(report)}* · Citation rate ${citation?.displayValue ?? "—"} · Target page ${integrity?.displayValue ?? "—"}`;
     })
     .join("\n");
-  const actionLines = [...new Map(ordered.flatMap((report) => report.actions).map((action) => [action.title, action])).values()];
+  const actionLines = dedupeReportActions(ordered.flatMap((report) => report.actions));
   const actions = actionLines.length
-    ? actionLines.map((action) => `• [${action.priority}] ${action.title}`).join("\n")
+    ? actionLines.map(formatActionLine).join("\n")
     : "_No open findings were present when this report was generated._";
   const portfolio = formatPortfolioSummary(primary.portfolio);
   const actionElements = [
@@ -169,8 +174,9 @@ export function formatDailyPulseMessage(report: DailyPulseReport): { text: strin
       ? `*Biggest leak*\n${leak.from} → ${leak.to} is not measurable yet.`
       : `*Biggest leak*\n${leak.from} → ${leak.to}`;
 
-  const actionLines = report.actions.length
-    ? report.actions.map((action) => `• [${action.priority}] ${action.title}`).join("\n")
+  const actionLines = dedupeReportActions(report.actions);
+  const actionsText = actionLines.length
+    ? actionLines.map(formatActionLine).join("\n")
     : "_No open findings were present when this report was generated._";
 
   // Slack rejects the whole message with invalid_blocks if a button's url
@@ -189,7 +195,7 @@ export function formatDailyPulseMessage(report: DailyPulseReport): { text: strin
     ...(formatPortfolioSummary(report.portfolio) ? [{ type: "section", text: { type: "mrkdwn", text: formatPortfolioSummary(report.portfolio)! } }] : []),
     { type: "section", text: { type: "mrkdwn", text: `*FUNNEL*\n${funnelLine}` } },
     { type: "section", text: { type: "mrkdwn", text: leakText } },
-    { type: "section", text: { type: "mrkdwn", text: `*NEXT DECISIONS*\n${actionLines}` } },
+    { type: "section", text: { type: "mrkdwn", text: `*NEXT DECISIONS*\n${actionsText}` } },
     ...(actionElements.length ? [{ type: "actions", elements: actionElements }] : []),
   ];
 
