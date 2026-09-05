@@ -39,6 +39,21 @@ describe("formatDailyPulseMessage", () => {
     expect(JSON.stringify(blocks)).toContain("not measurable yet");
   });
 
+  it("renders action age and does not repeat the same decision", () => {
+    const repeated = {
+      ...report,
+      actions: [
+        { title: "No target citation in the current prompt checks", status: "new", priority: "medium", findingId: "f-1", ageDays: 6, ageLabel: "open 6d" },
+        { title: "No target citation in the current prompt checks", status: "new", priority: "medium", findingId: "f-2", ageDays: 6, ageLabel: "open 6d" },
+      ],
+    };
+    const { blocks } = formatDailyPulseMessage(repeated);
+    const flat = JSON.stringify(blocks);
+
+    expect(flat.match(/No target citation in the current prompt checks/g)).toHaveLength(1);
+    expect(flat).toContain("[medium · open 6d]");
+  });
+
   it("drops the actions block instead of sending relative button URLs Slack would reject", () => {
     // Production bug: a report built with an empty dashboardOrigin persists
     // links like "/runs/run-1" instead of an absolute URL. Slack's

@@ -98,6 +98,28 @@ describe("daily pulse report", () => {
     expect(report.links.report).toBe("https://aeo-loop.vercel.app/reports/run-1");
     expect(JSON.stringify(report)).not.toContain("provider detail");
   });
+
+  it("deduplicates repeated open findings and exposes their age in the action contract", () => {
+    const report = buildDailyPulseReport({
+      run: { ...run, started_at: "2026-09-05T08:00:00.000Z", completed_at: "2026-09-05T08:00:10.000Z" },
+      observations: [observation({})],
+      findings: [
+        finding({ id: "older", title: "No target citation in the current prompt checks", created_at: "2026-08-30T08:00:00.000Z" }),
+        finding({ id: "duplicate", title: "No target citation in the current prompt checks", created_at: "2026-08-30T08:00:01.000Z" }),
+      ],
+    });
+
+    expect(report.actions).toEqual([
+      expect.objectContaining({
+        title: "No target citation in the current prompt checks",
+        status: "new",
+        priority: "medium",
+        findingId: "older",
+        ageDays: 6,
+        ageLabel: "open 6d",
+      }),
+    ]);
+  });
   it("keeps the persistence payload inside the versioned report contract", () => {
     const report = buildDailyPulseReport({ run, observations: [observation({})], findings: [] });
     const payload = toReportPayload(report);
