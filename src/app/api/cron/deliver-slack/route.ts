@@ -40,6 +40,13 @@ export async function GET(request: Request) {
       env.slackReportBotToken ? checkSlackAuth(env.slackReportBotToken) : { ok: false as const, error: "no_report_bot_token" },
       env.slackAlertBotToken ? checkSlackAuth(env.slackAlertBotToken) : { ok: false as const, error: "no_alert_bot_token" },
     ]);
+    if (reports.readError || findingAlerts.readError) {
+      logServerError("Slack delivery queue read failed", {
+        reportsReadError: reports.readError,
+        findingAlertsReadError: findingAlerts.readError,
+      });
+      return apiErrorResponse("DELIVERY_QUEUE_READ_FAILED", "Slack delivery queue unavailable", 503);
+    }
     return Response.json({ ok: true, reports, findingAlerts, auth: { report: reportAuth, alert: alertAuth } });
   } catch (error) {
     logServerError("Slack delivery failed", error);

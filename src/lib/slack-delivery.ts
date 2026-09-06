@@ -29,6 +29,29 @@ type FindingAlertRow = {
 
 type DeliveryWrite = { error?: { message?: string } | null };
 
+const DELIVERY_READ_ATTEMPTS = 2;
+const DELIVERY_READ_RETRY_DELAY_MS = 250;
+
+type ReadResult<T> = { data: T | null; error: unknown | null };
+
+/** Supabase reads can fail transiently in a scheduled function. Retry once, but
+ * preserve the readError signal so the cron cannot report a false success. */
+async function readWithRetry<T>(read: () => PromiseLike<ReadResult<T>>): Promise<ReadResult<T>> {
+  let result: ReadResult<T> = { data: null, error: new Error("delivery queue read failed") };
+  for (let attempt = 1; attempt <= DELIVERY_READ_ATTEMPTS; attempt += 1) {
+    try {
+      result = await read();
+    } catch (error) {
+      result = { data: null, error };
+    }
+    if (!result.error && result.data !== null) return result;
+    if (attempt < DELIVERY_READ_ATTEMPTS) {
+      await new Promise((resolve) => setTimeout(resolve, DELIVERY_READ_RETRY_DELAY_MS * attempt));
+    }
+  }
+  return result;
+}
+
 /** Delivery state must never turn a successful Slack post into a crashed cron. */
 async function safeDeliveryWrite(context: string, write: () => PromiseLike<DeliveryWrite>): Promise<void> {
   try {
@@ -111,12 +134,12 @@ export async function deliverQueuedReports(
   limit = 5,
 ): Promise<DeliverySummary> {
   const summary: DeliverySummary = { sent: 0, failed: 0, skipped: 0, readError: false };
-  const { data: rows, error } = await client
+  const { data: rows, error } = await readWithRetry(() => client
     .from("report_outbox")
     .select("id, report_id, event_id, status, payload, attempt_count")
     .eq("status", "queued")
     .order("available_at", { ascending: true })
-    .limit(limit);
+    .limit(limit));
   if (error || !rows) {
     if (error) logServerError("report_outbox read failed", error);
     return { ...summary, readError: true };
@@ -176,13 +199,13 @@ export async function deliverQueuedFindingAlerts(
   limit = 10,
 ): Promise<DeliverySummary> {
   const summary: DeliverySummary = { sent: 0, failed: 0, skipped: 0, readError: false };
-  const { data: rows, error } = await client
+  const { data: rows, error } = await readWithRetry(() => client
     .from("finding_delivery_events")
     .select("id, event_id, status, payload, attempt_count")
     .eq("channel", "slack")
     .eq("status", "queued")
     .order("created_at", { ascending: true })
-    .limit(limit);
+    .limit(limit));
   if (error || !rows) {
     if (error) logServerError("finding_delivery_events read failed", error);
     return { ...summary, readError: true };
