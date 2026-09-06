@@ -1,11 +1,26 @@
 import { describe, expect, it } from "vitest";
-import { dailyComparisonKey, defaultAeoTargetUrl, defaultAeoVariantTargetUrl, experimentPromptLimit, experimentRunKey, knownTopics, promptLimit, seoVsAeoTopic, seoVsAeoVariantTopic, topicForKey } from "../src/lib/topic";
+import { dailyComparisonKey, dailyPromptLimit, defaultAeoTargetUrl, defaultAeoVariantTargetUrl, experimentPromptLimit, experimentRunKey, knownTopics, normalizeAeoTargetUrl, promptLimit, seoVsAeoTopic, seoVsAeoVariantTopic, topicForKey } from "../src/lib/topic";
 
 describe("topic contract", () => {
   it("defaults to the public portfolio answer page", () => {
     expect(defaultAeoTargetUrl).toBe(
-      "https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio",
+      "https://www.stephenmantle.com/insights/seo-vs-aeo-portfolio",
     );
+  });
+
+  it("normalizes retired and apex portfolio hosts to the canonical live host", () => {
+    expect(normalizeAeoTargetUrl(
+      "https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio",
+      defaultAeoTargetUrl,
+    )).toBe(defaultAeoTargetUrl);
+    expect(normalizeAeoTargetUrl(
+      "https://stephenmantle.com/insights/seo-vs-aeo-portfolio",
+      defaultAeoTargetUrl,
+    )).toBe(defaultAeoTargetUrl);
+    expect(normalizeAeoTargetUrl(
+      "https://unexpected-host.example/insights/seo-vs-aeo-portfolio",
+      defaultAeoTargetUrl,
+    )).toBe(defaultAeoTargetUrl);
   });
 
   it("keeps the fixed prompt set intact by default", () => {
@@ -19,6 +34,18 @@ describe("topic contract", () => {
     expect(promptLimit(seoVsAeoTopic)).toHaveLength(10);
     process.env.AEO_MAX_EXA_PROMPTS = "0";
     expect(promptLimit(seoVsAeoTopic)).toHaveLength(1);
+    delete process.env.AEO_MAX_EXA_PROMPTS;
+  });
+
+  it("uses a three-prompt daily coverage default and allows a bounded override", () => {
+    delete process.env.AEO_DAILY_EXA_PROMPTS;
+    process.env.AEO_MAX_EXA_PROMPTS = "1";
+    expect(dailyPromptLimit(seoVsAeoTopic)).toHaveLength(3);
+    process.env.AEO_DAILY_EXA_PROMPTS = "999";
+    expect(dailyPromptLimit(seoVsAeoTopic)).toHaveLength(10);
+    process.env.AEO_DAILY_EXA_PROMPTS = "1";
+    expect(dailyPromptLimit(seoVsAeoTopic)).toHaveLength(1);
+    delete process.env.AEO_DAILY_EXA_PROMPTS;
     delete process.env.AEO_MAX_EXA_PROMPTS;
   });
 
@@ -44,7 +71,7 @@ describe("topic contract", () => {
       "github-linear-slack-website-loop",
     ]);
     expect(defaultAeoVariantTargetUrl).toBe(
-      "https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio-variant-b",
+      "https://www.stephenmantle.com/insights/seo-vs-aeo-portfolio-variant-b",
     );
     expect(seoVsAeoVariantTopic.targetUrl).toBe(defaultAeoVariantTargetUrl);
     expect(seoVsAeoVariantTopic.prompts).toEqual(seoVsAeoTopic.prompts);

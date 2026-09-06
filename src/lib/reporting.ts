@@ -1,4 +1,5 @@
 import type { FindingRow, ObservationRow, RunRow } from "./observatory";
+import { canonicalAeoHost } from "./topic";
 
 export type ReportStage = {
   key: string;
@@ -48,6 +49,13 @@ export type DailyPulseReport = {
   insights: Array<{ title: string; status: string }>;
   actions: ReportAction[];
   links: { dashboard: string; run: string; report: string };
+  measurement?: {
+    targetUrl: string | null;
+    targetHost: string | null;
+    targetIsCanonical: boolean;
+    observedPromptChecks: number;
+    expectedPromptChecks: number | null;
+  };
   portfolio?: PortfolioStats;
 };
 
@@ -59,7 +67,6 @@ export type ReportAction = {
   ageDays?: number | null;
   ageLabel?: string;
 };
-
 export type PortfolioStats = {
   totalRuns: number;
   daysRunning: number | null;
@@ -234,6 +241,15 @@ export function dedupeReportActions(actions: ReportAction[]): ReportAction[] {
   return [...deduped.values()];
 }
 
+function targetHost(targetUrl: string | null): string | null {
+  if (!targetUrl) return null;
+  try {
+    return new URL(targetUrl).hostname;
+  } catch {
+    return null;
+  }
+}
+
 export function buildDailyPulseReport({
   run,
   observations,
@@ -255,6 +271,9 @@ export function buildDailyPulseReport({
   const latest = latestObservation(observations);
   const citationRate = observedChecks.length ? citedChecks.length / observedChecks.length : null;
   const targetPage = observations.find((observation) => observation.provider === "firecrawl");
+  const measuredTargetUrl = targetPage?.target_url ?? exaChecks[0]?.target_url ?? null;
+  const measuredTargetHost = targetHost(measuredTargetUrl);
+  const expectedPromptChecks = typeof run.metadata?.promptLimit === "number" ? run.metadata.promptLimit : null;
   const dashboardPath = dashboardOrigin.replace(/\/$/, "");
   const comparisonKey = typeof run.metadata?.comparisonKey === "string" ? run.metadata.comparisonKey : null;
   const comparisonRole = run.metadata?.comparisonRole === "control" || run.metadata?.comparisonRole === "variant" ? run.metadata.comparisonRole : null;
@@ -322,6 +341,13 @@ export function buildDailyPulseReport({
       dashboard: dashboardPath || "/",
       run: `${dashboardPath}/runs/${run.id}`,
       report: `${dashboardPath}/reports/${run.id}`,
+    },
+    measurement: {
+      targetUrl: measuredTargetUrl,
+      targetHost: measuredTargetHost,
+      targetIsCanonical: measuredTargetHost === canonicalAeoHost,
+      observedPromptChecks: exaChecks.length,
+      expectedPromptChecks,
     },
     ...(portfolio ? { portfolio } : {}),
   };

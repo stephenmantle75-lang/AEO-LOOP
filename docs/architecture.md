@@ -129,10 +129,12 @@ typecheck, tests, build, dependency audit, dependency review, and CodeQL run on
 pull requests and `main`. Vercel remains the CD boundary. See
 [ci-cd-security.md](ci-cd-security.md).
 
-The first Exa run is deliberately capped at one fixed prompt with
-`AEO_MAX_EXA_PROMPTS=1`. Increase that only after checking the stored cost and
-response quality. Search Console, analysis findings, Linear/Zapier/Slack, and
-approved portfolio changes remain separate slices.
+Scheduled paired Exa checks use three fixed prompts by default through
+`AEO_DAILY_EXA_PROMPTS=3`, bounded to the ten-prompt experiment set. The
+single-topic fallback remains `AEO_MAX_EXA_PROMPTS=1`; manual paired runs use
+the complete fixed set unless deliberately reduced. Search Console, analysis
+findings, Linear/Zapier/Slack, and approved portfolio changes remain separate
+slices.
 
 ## Current verification hold
 

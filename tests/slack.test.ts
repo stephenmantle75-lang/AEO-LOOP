@@ -20,6 +20,13 @@ const report: DailyPulseReport = {
   insights: [],
   actions: [{ title: "Review finding F-1", status: "new", priority: "high" }],
   links: { dashboard: "https://aeo-loop.vercel.app/", run: "https://aeo-loop.vercel.app/runs/run-1", report: "https://aeo-loop.vercel.app/reports/run-1" },
+  measurement: {
+    targetUrl: "https://www.stephenmantle.com/insights/seo-vs-aeo-portfolio",
+    targetHost: "www.stephenmantle.com",
+    targetIsCanonical: true,
+    observedPromptChecks: 3,
+    expectedPromptChecks: 3,
+  },
 };
 
 describe("formatDailyPulseMessage", () => {
@@ -32,6 +39,8 @@ describe("formatDailyPulseMessage", () => {
     expect(flat).toContain("Review finding F-1");
     expect(flat).toContain(report.links.dashboard);
     expect(flat).toContain(report.links.run);
+    expect(flat).toContain("www.stephenmantle.com");
+    expect(flat).toContain("3/3 prompts");
   });
 
   it("marks a not-measurable leak instead of inventing a number", () => {
