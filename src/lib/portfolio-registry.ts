@@ -28,12 +28,24 @@ export type PortfolioReadiness = {
 };
 
 function decodeHtml(value: string): string {
-  return value
-    .replaceAll("&amp;", "&")
-    .replaceAll("&quot;", '"')
-    .replaceAll("&#39;", "'")
-    .replaceAll("&lt;", "<")
-    .replaceAll("&gt;", ">");
+  // Decode XML entities in one pass. A chained replacement would decode
+  // text twice, so an input such as &amp;amp; could become a raw ampersand.
+  return value.replace(/&amp;|&quot;|&#39;|&lt;|&gt;/g, (entity) => {
+    switch (entity) {
+      case "&amp;":
+        return "&";
+      case "&quot;":
+        return '"';
+      case "&#39;":
+        return "'";
+      case "&lt;":
+        return "<";
+      case "&gt;":
+        return ">";
+      default:
+        return entity;
+    }
+  });
 }
 
 function normalisePath(value: string): string | null {

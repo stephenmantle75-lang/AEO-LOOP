@@ -26,6 +26,14 @@ describe("portfolio page registry", () => {
     ]);
   });
 
+  it("decodes sitemap entities once without recursively unescaping content", () => {
+    const urls = parseSitemapUrls(
+      "<url><loc>https://www.stephenmantle.com/notes/a?x=1&amp;amp;y=2</loc></url>",
+    );
+
+    expect(urls).toEqual(["https://www.stephenmantle.com/notes/a?x=1&amp;y=2"]);
+  });
+
   it("keeps only public Notes and insight pages and creates stable entries", () => {
     const registry = buildPortfolioPageRegistry([
       "https://stephenmantle.com/notes/one",
