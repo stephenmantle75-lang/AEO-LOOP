@@ -2,15 +2,19 @@ import { describe, expect, it } from "vitest";
 import { dailyComparisonKey, dailyPromptLimit, defaultAeoTargetUrl, defaultAeoVariantTargetUrl, experimentPromptLimit, experimentRunKey, knownTopics, normalizeAeoTargetUrl, promptLimit, seoVsAeoTopic, seoVsAeoVariantTopic, topicForKey } from "../src/lib/topic";
 
 describe("topic contract", () => {
-  it("defaults to the public portfolio answer page", () => {
+  it("defaults to the isolated Vercel portfolio answer page", () => {
     expect(defaultAeoTargetUrl).toBe(
-      "https://www.stephenmantle.com/insights/seo-vs-aeo-portfolio",
+      "https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio",
     );
   });
 
-  it("normalizes retired and apex portfolio hosts to the canonical live host", () => {
+  it("accepts only the isolated Vercel host and rejects the live domain", () => {
     expect(normalizeAeoTargetUrl(
       "https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio",
+      defaultAeoTargetUrl,
+    )).toBe(defaultAeoTargetUrl);
+    expect(normalizeAeoTargetUrl(
+      "https://www.stephenmantle.com/insights/seo-vs-aeo-portfolio",
       defaultAeoTargetUrl,
     )).toBe(defaultAeoTargetUrl);
     expect(normalizeAeoTargetUrl(
@@ -71,7 +75,7 @@ describe("topic contract", () => {
       "github-linear-slack-website-loop",
     ]);
     expect(defaultAeoVariantTargetUrl).toBe(
-      "https://www.stephenmantle.com/insights/seo-vs-aeo-portfolio-variant-b",
+      "https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio-variant-b",
     );
     expect(seoVsAeoVariantTopic.targetUrl).toBe(defaultAeoVariantTargetUrl);
     expect(seoVsAeoVariantTopic.prompts).toEqual(seoVsAeoTopic.prompts);

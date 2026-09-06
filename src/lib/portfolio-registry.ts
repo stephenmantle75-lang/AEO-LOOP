@@ -1,14 +1,11 @@
 import { createHash } from "node:crypto";
 
-export const canonicalPortfolioOrigin = "https://www.stephenmantle.com";
+/** The AEO test surface is the Vercel app, not the live custom domain. */
+export const canonicalPortfolioOrigin = "https://stephenmantle-portfolio.vercel.app";
 export const defaultPortfolioSitemapUrl = `${canonicalPortfolioOrigin}/sitemap.xml`;
 
 const monitoredPathPrefixes = ["/notes/", "/insights/"] as const;
-const acceptedPortfolioHosts = new Set([
-  "www.stephenmantle.com",
-  "stephenmantle.com",
-  "stephenmantle-portfolio.vercel.app",
-]);
+const acceptedPortfolioHosts = new Set(["stephenmantle-portfolio.vercel.app"]);
 
 export type PortfolioPageType = "note" | "insight";
 

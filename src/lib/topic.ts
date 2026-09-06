@@ -5,23 +5,24 @@ export type TopicDefinition = {
   prompts: string[];
 };
 
-export const canonicalAeoHost = "www.stephenmantle.com";
+/** Host reserved for AEO experiment pages; never the live custom domain. */
+export const canonicalAeoHost = "stephenmantle-portfolio.vercel.app";
 
 export const defaultAeoTargetUrl =
-  "https://www.stephenmantle.com/insights/seo-vs-aeo-portfolio";
+  "https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio";
 
 export const defaultAeoVariantTargetUrl =
-  "https://www.stephenmantle.com/insights/seo-vs-aeo-portfolio-variant-b";
+  "https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio-variant-b";
 
-const legacyAeoHosts = new Set(["stephenmantle-portfolio.vercel.app", "stephenmantle.com"]);
+const allowedAeoHosts = new Set([canonicalAeoHost]);
 
-/** Convert known historical portfolio URLs to the only host the experiment should measure. */
+/** Keep experiment targets on the isolated Vercel app, never on the live domain. */
 export function normalizeAeoTargetUrl(value: string | undefined, fallback: string): string {
   const candidate = value?.trim() || fallback;
   try {
     const parsed = new URL(candidate);
     const hostname = parsed.hostname.toLowerCase();
-    if (!legacyAeoHosts.has(hostname) && hostname !== canonicalAeoHost) return fallback;
+    if (!allowedAeoHosts.has(hostname)) return fallback;
     parsed.protocol = "https:";
     parsed.hostname = canonicalAeoHost;
     parsed.hash = "";

@@ -7,54 +7,55 @@ import {
 } from "../src/lib/portfolio-registry";
 import { portfolioCheckRows, portfolioPageRows } from "../src/lib/portfolio-baseline";
 
-const canonicalOrigin = "https://www.stephenmantle.com";
+const canonicalOrigin = "https://stephenmantle-portfolio.vercel.app";
 
 describe("portfolio page registry", () => {
   it("extracts and deduplicates sitemap locations", () => {
     const xml = `
       <urlset>
-        <url><loc>https://www.stephenmantle.com/notes/one</loc></url>
-        <url><loc> https://www.stephenmantle.com/notes/one#fragment </loc></url>
-        <url><loc>https://www.stephenmantle.com/contact</loc></url>
+        <url><loc>https://stephenmantle-portfolio.vercel.app/notes/one</loc></url>
+        <url><loc> https://stephenmantle-portfolio.vercel.app/notes/one#fragment </loc></url>
+        <url><loc>https://stephenmantle-portfolio.vercel.app/contact</loc></url>
       </urlset>
     `;
 
     expect(parseSitemapUrls(xml)).toEqual([
-      "https://www.stephenmantle.com/notes/one",
-      "https://www.stephenmantle.com/notes/one#fragment",
-      "https://www.stephenmantle.com/contact",
+      "https://stephenmantle-portfolio.vercel.app/notes/one",
+      "https://stephenmantle-portfolio.vercel.app/notes/one#fragment",
+      "https://stephenmantle-portfolio.vercel.app/contact",
     ]);
   });
 
   it("decodes sitemap entities once without recursively unescaping content", () => {
     const urls = parseSitemapUrls(
-      "<url><loc>https://www.stephenmantle.com/notes/a?x=1&amp;amp;y=2</loc></url>",
+      "<url><loc>https://stephenmantle-portfolio.vercel.app/notes/a?x=1&amp;amp;y=2</loc></url>",
     );
 
-    expect(urls).toEqual(["https://www.stephenmantle.com/notes/a?x=1&amp;y=2"]);
+    expect(urls).toEqual(["https://stephenmantle-portfolio.vercel.app/notes/a?x=1&amp;y=2"]);
   });
 
   it("keeps only public Notes and insight pages and creates stable entries", () => {
     const registry = buildPortfolioPageRegistry([
-      "https://stephenmantle.com/notes/one",
-      "https://www.stephenmantle.com/insights/two/",
-      "https://www.stephenmantle.com/contact",
+      "https://stephenmantle-portfolio.vercel.app/notes/one",
+      "https://stephenmantle-portfolio.vercel.app/insights/two/",
+      "https://stephenmantle-portfolio.vercel.app/contact",
+      "https://www.stephenmantle.com/notes/live-only",
       "https://example.com/notes/foreign",
-      "https://www.stephenmantle.com/notes/one",
+      "https://stephenmantle-portfolio.vercel.app/notes/one",
     ]);
 
     expect(registry).toEqual([
       {
         pageKey: "portfolio:/insights/two",
         path: "/insights/two",
-        url: "https://www.stephenmantle.com/insights/two",
+        url: "https://stephenmantle-portfolio.vercel.app/insights/two",
         pageType: "insight",
         priority: "high",
       },
       {
         pageKey: "portfolio:/notes/one",
         path: "/notes/one",
-        url: "https://www.stephenmantle.com/notes/one",
+        url: "https://stephenmantle-portfolio.vercel.app/notes/one",
         pageType: "note",
         priority: "standard",
       },

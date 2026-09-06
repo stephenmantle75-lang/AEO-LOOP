@@ -1,13 +1,14 @@
 # Portfolio citation-readiness baseline
 
 ANT-113 adds a source-derived inventory and deterministic readiness check for
-the public portfolio's `/notes/` and `/insights/` pages.
+the isolated Vercel portfolio app's `/notes/` and `/insights/` pages. The live
+custom domain is deliberately outside this test surface.
 
 ## What it does
 
 ```mermaid
 flowchart LR
-  S[Live portfolio sitemap] --> R[Stable page registry]
+  S[Vercel app sitemap] --> R[Stable page registry]
   R --> F[Bounded page fetches]
   F --> C[Readiness checks]
   R --> P[(portfolio_pages)]
@@ -16,9 +17,9 @@ flowchart LR
   Q --> O
 ```
 
-The registry is derived from the sitemap. It does not maintain a second
-hand-written list of portfolio URLs. Known legacy hosts are normalised to the
-approved canonical host, foreign hosts are ignored, and duplicate paths are
+The registry is derived from the Vercel app sitemap. It does not maintain a
+second hand-written list of portfolio URLs. The live custom domain is rejected
+as an experiment source, foreign hosts are ignored, and duplicate paths are
 collapsed into one stable `page_key`.
 
 ## Readiness signals
@@ -43,7 +44,7 @@ Authorization: Bearer $CRON_SECRET
 ```
 
 The route reads `AEO_PORTFOLIO_SITEMAP_URL` when configured, otherwise it uses
-`https://www.stephenmantle.com/sitemap.xml`. It fetches at most three pages at
+`https://stephenmantle-portfolio.vercel.app/sitemap.xml`. It fetches at most three pages at
 once, times out slow requests, persists the registry and check rows through the
 service role, and returns counts for ready, needs-attention, and failed pages.
 
