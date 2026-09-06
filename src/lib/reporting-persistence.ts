@@ -54,6 +54,7 @@ export function toReportPayload(report: DailyPulseReport): DailyPulseReport {
     insights: report.insights.map((insight) => ({ ...insight })),
     actions: report.actions.map((action) => ({ ...action })),
     links: { ...report.links },
+    ...(report.measurement ? { measurement: { ...report.measurement } } : {}),
     ...(report.portfolio
       ? {
           portfolio: {

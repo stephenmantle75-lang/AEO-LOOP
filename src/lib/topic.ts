@@ -5,18 +5,37 @@ export type TopicDefinition = {
   prompts: string[];
 };
 
+/** Host reserved for AEO experiment pages; never the live custom domain. */
+export const canonicalAeoHost = "stephenmantle-portfolio.vercel.app";
+
 export const defaultAeoTargetUrl =
   "https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio";
 
 export const defaultAeoVariantTargetUrl =
   "https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio-variant-b";
 
+const allowedAeoHosts = new Set([canonicalAeoHost]);
+
+/** Keep experiment targets on the isolated Vercel app, never on the live domain. */
+export function normalizeAeoTargetUrl(value: string | undefined, fallback: string): string {
+  const candidate = value?.trim() || fallback;
+  try {
+    const parsed = new URL(candidate);
+    const hostname = parsed.hostname.toLowerCase();
+    if (!allowedAeoHosts.has(hostname)) return fallback;
+    parsed.protocol = "https:";
+    parsed.hostname = canonicalAeoHost;
+    parsed.hash = "";
+    return parsed.toString().replace(/\/$/, "");
+  } catch {
+    return fallback;
+  }
+}
+
 export const seoVsAeoTopic: TopicDefinition = {
   key: "seo-vs-aeo-portfolio",
   question: "What is the difference between SEO and AEO for a personal portfolio?",
-  targetUrl:
-    process.env.AEO_TARGET_URL ??
-    defaultAeoTargetUrl,
+  targetUrl: normalizeAeoTargetUrl(process.env.AEO_TARGET_URL, defaultAeoTargetUrl),
   prompts: [
     "What is the difference between SEO and AEO for a personal portfolio?",
     "How should a personal portfolio use SEO and AEO together?",
@@ -34,13 +53,13 @@ export const seoVsAeoTopic: TopicDefinition = {
 export const seoVsAeoVariantTopic: TopicDefinition = {
   key: "seo-vs-aeo-portfolio-variant-b",
   question: seoVsAeoTopic.question,
-  targetUrl: process.env.AEO_VARIANT_TARGET_URL ?? defaultAeoVariantTargetUrl,
+  targetUrl: normalizeAeoTargetUrl(process.env.AEO_VARIANT_TARGET_URL, defaultAeoVariantTargetUrl),
   prompts: [...seoVsAeoTopic.prompts],
 };
 
 function portfolioOrigin(): string {
   try {
-    return new URL(process.env.AEO_TARGET_URL ?? defaultAeoTargetUrl).origin;
+    return new URL(seoVsAeoTopic.targetUrl).origin;
   } catch {
     return new URL(defaultAeoTargetUrl).origin;
   }
@@ -112,6 +131,15 @@ function boundedPromptLimit(topic: TopicDefinition, rawValue: string | number | 
 /** Keep scheduled collection cheap and predictable unless explicitly expanded. */
 export function promptLimit(topic: TopicDefinition, override?: number): string[] {
   return boundedPromptLimit(topic, override ?? process.env.AEO_MAX_EXA_PROMPTS, 1);
+}
+
+/** Scheduled paired checks need enough coverage to detect more than one prompt shape. */
+export function dailyPromptLimit(topic: TopicDefinition, override?: number): string[] {
+  return boundedPromptLimit(
+    topic,
+    override ?? process.env.AEO_DAILY_EXA_PROMPTS,
+    3,
+  );
 }
 
 /** Manual paired experiments use the complete fixed prompt set by default. */

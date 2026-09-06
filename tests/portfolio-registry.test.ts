@@ -1,0 +1,135 @@
+import { describe, expect, it } from "vitest";
+import {
+  assessPortfolioPageHtml,
+  buildPortfolioPageRegistry,
+  pageRegistryDigest,
+  parseSitemapUrls,
+} from "../src/lib/portfolio-registry";
+import { portfolioCheckRows, portfolioPageRows } from "../src/lib/portfolio-baseline";
+
+const canonicalOrigin = "https://stephenmantle-portfolio.vercel.app";
+
+describe("portfolio page registry", () => {
+  it("extracts and deduplicates sitemap locations", () => {
+    const xml = `
+      <urlset>
+        <url><loc>https://stephenmantle-portfolio.vercel.app/notes/one</loc></url>
+        <url><loc> https://stephenmantle-portfolio.vercel.app/notes/one#fragment </loc></url>
+        <url><loc>https://stephenmantle-portfolio.vercel.app/contact</loc></url>
+      </urlset>
+    `;
+
+    expect(parseSitemapUrls(xml)).toEqual([
+      "https://stephenmantle-portfolio.vercel.app/notes/one",
+      "https://stephenmantle-portfolio.vercel.app/notes/one#fragment",
+      "https://stephenmantle-portfolio.vercel.app/contact",
+    ]);
+  });
+
+  it("decodes sitemap entities once without recursively unescaping content", () => {
+    const urls = parseSitemapUrls(
+      "<url><loc>https://stephenmantle-portfolio.vercel.app/notes/a?x=1&amp;amp;y=2</loc></url>",
+    );
+
+    expect(urls).toEqual(["https://stephenmantle-portfolio.vercel.app/notes/a?x=1&amp;y=2"]);
+  });
+
+  it("keeps only public Notes and insight pages and creates stable entries", () => {
+    const registry = buildPortfolioPageRegistry([
+      "https://stephenmantle-portfolio.vercel.app/notes/one",
+      "https://stephenmantle-portfolio.vercel.app/insights/two/",
+      "https://stephenmantle-portfolio.vercel.app/contact",
+      "https://www.stephenmantle.com/notes/live-only",
+      "https://example.com/notes/foreign",
+      "https://stephenmantle-portfolio.vercel.app/notes/one",
+    ]);
+
+    expect(registry).toEqual([
+      {
+        pageKey: "portfolio:/insights/two",
+        path: "/insights/two",
+        url: "https://stephenmantle-portfolio.vercel.app/insights/two",
+        pageType: "insight",
+        priority: "high",
+      },
+      {
+        pageKey: "portfolio:/notes/one",
+        path: "/notes/one",
+        url: "https://stephenmantle-portfolio.vercel.app/notes/one",
+        pageType: "note",
+        priority: "standard",
+      },
+    ]);
+  });
+
+  it("reports a complete page-readiness result for a well-formed page", () => {
+    const html = `
+      <html>
+        <head>
+          <title>How to improve a website</title>
+          <meta name="description" content="A practical guide to improving a website.">
+          <link rel="canonical" href="${canonicalOrigin}/notes/improve">
+          <meta name="robots" content="index,follow">
+          <script type="application/ld+json">{"@type":"Article","author":{"name":"Stephen Mantle"},"datePublished":"2026-09-04"}</script>
+        </head>
+        <body><main><article><h1>How to improve a website</h1><h2>What matters first</h2><p>Start with a clear answer and evidence.</p><time datetime="2026-09-04">4 September 2026</time></article></main></body>
+      </html>
+    `;
+
+    const result = assessPortfolioPageHtml(html, `${canonicalOrigin}/notes/improve`);
+
+    expect(result.status).toBe("ready");
+    expect(result.score).toBe(100);
+    expect(result.failedChecks).toEqual([]);
+  });
+
+  it("identifies missing canonical, metadata, structure, and noindex failures", () => {
+    const result = assessPortfolioPageHtml(
+      `<html><head><title>Thin page</title><meta name="robots" content="noindex"></head><body><p>Short.</p></body></html>`,
+      `${canonicalOrigin}/notes/thin`,
+    );
+
+    expect(result.status).toBe("needs_attention");
+    expect(result.score).toBeLessThan(100);
+    expect(result.failedChecks).toEqual([
+      "description",
+      "canonical",
+      "robots",
+      "heading",
+      "answer_structure",
+      "authorship_date",
+      "structured_data",
+    ]);
+  });
+
+  it("creates stable persistence rows from a discovered baseline", () => {
+    const pages = buildPortfolioPageRegistry([`${canonicalOrigin}/notes/one`]);
+    const result = {
+      checkedAt: "2026-09-04T12:00:00.000Z",
+      sitemapUrl: `${canonicalOrigin}/sitemap.xml`,
+      registryDigest: pageRegistryDigest(pages),
+      pages,
+      checks: [{
+        pageKey: pages[0].pageKey,
+        url: pages[0].url,
+        httpStatus: 200,
+        status: "needs_attention" as const,
+        score: 50,
+        passedChecks: ["title"],
+        failedChecks: ["description"],
+      }],
+    };
+
+    expect(portfolioPageRows(result)[0]).toMatchObject({
+      page_key: "portfolio:/notes/one",
+      registry_digest: result.registryDigest,
+      active: true,
+    });
+    expect(portfolioCheckRows(result)[0]).toMatchObject({
+      page_key: "portfolio:/notes/one",
+      checked_at: result.checkedAt,
+      status: "needs_attention",
+      score: 50,
+    });
+  });
+});
