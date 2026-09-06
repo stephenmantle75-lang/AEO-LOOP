@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 type ObservatoryShellProps = {
-  active?: "overview" | "topics" | "runs" | "findings" | "experiments" | "integrations" | "architecture";
+  active?: "overview" | "topics" | "runs" | "findings" | "experiments" | "x-tracking" | "integrations" | "architecture";
   findingCount?: number;
   children: React.ReactNode;
 };
@@ -15,6 +15,7 @@ const items = [
 const actionItems = [
   { key: "findings", label: "Findings", href: "/findings" },
   { key: "experiments", label: "Experiments", href: "/experiments" },
+  { key: "x-tracking", label: "X tracking", href: "/x-tracking" },
 ] as const;
 
 const systemItems = [
