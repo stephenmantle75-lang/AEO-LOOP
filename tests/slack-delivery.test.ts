@@ -135,6 +135,26 @@ describe("deliverQueuedReports", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  it("retries a transient outbox read before reporting a queue failure", async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    let reads = 0;
+    const client = {
+      from: () => {
+        const result = reads++ === 0
+          ? { data: null, error: { message: "transient connection failure" } }
+          : { data: [], error: null };
+        return { select: () => query(result), update: updateSequence([{ error: null }]), upsert: () => query({ error: null }) };
+      },
+    } as unknown as SupabaseClient;
+
+    const summary = await deliverQueuedReports(client, config);
+
+    expect(summary).toEqual({ sent: 0, failed: 0, skipped: 0, readError: false });
+    expect(reads).toBe(2);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   it("marks a malformed report failed and continues with later queued reports", async () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     const fetchSpy = vi.fn().mockResolvedValue({ status: 200, json: async () => ({ ok: true, ts: "111.3" }) });
