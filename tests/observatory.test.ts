@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { deliveryStatusLabel, deliveryStatusTone, reportDeliveryStatusFromClient, type ReportDeliveryStatus } from "../src/lib/observatory";
+import { deliveryStatusLabel, deliveryStatusTone, getOverviewDataFromClient, reportDeliveryStatusFromClient, type ReportDeliveryStatus } from "../src/lib/observatory";
 
 /** Same thenable-passthrough Supabase mock as tests/slack-delivery.test.ts, scoped to the
  *  .select().eq().maybeSingle() chain reportDeliveryStatusFromClient actually calls. */
@@ -15,6 +15,83 @@ function fakeClient(table: Record<string, unknown>): SupabaseClient {
     from: (name: string) => query(table[name] ?? { data: null, error: null }),
   } as unknown as SupabaseClient;
 }
+
+function overviewClient(options: {
+  runs: unknown;
+  findings: unknown;
+  observationCount: unknown;
+  activeRuns: unknown;
+  latestObservations: unknown;
+}) {
+  let observationCountOptions: Record<string, unknown> | undefined;
+
+  const client = {
+    from: (name: string) => {
+      const state: { count: boolean; status?: string; runId?: string } = { count: false };
+      const builder: any = {
+        select: (_fields: string, selectOptions?: Record<string, unknown>) => {
+          if (name === "observations" && selectOptions?.count === "exact") {
+            state.count = true;
+            observationCountOptions = selectOptions;
+          }
+          return builder;
+        },
+        order: () => builder,
+        limit: () => builder,
+        eq: (field: string, value: string) => {
+          state[field as "status" | "runId"] = value;
+          return builder;
+        },
+        then: (resolve: (value: unknown) => unknown, reject: (reason: unknown) => unknown) => {
+          let result: unknown;
+          if (name === "runs" && state.status === "running") result = options.activeRuns;
+          else if (name === "runs") result = options.runs;
+          else if (name === "findings") result = options.findings;
+          else if (name === "observations" && state.count) result = options.observationCount;
+          else result = options.latestObservations;
+          return Promise.resolve(result).then(resolve, reject);
+        },
+      };
+      return builder;
+    },
+  } as unknown as SupabaseClient;
+
+  return { client, getObservationCountOptions: () => observationCountOptions };
+}
+
+describe("overview reads", () => {
+  it("keeps the overview available when a core Supabase read fails", async () => {
+    const { client } = overviewClient({
+      runs: { data: null, error: { message: "JWT issued at future" } },
+      findings: { data: [], error: null },
+      observationCount: { data: [{ id: "observation-1" }], count: 187, error: null },
+      activeRuns: { data: [], error: null },
+      latestObservations: { data: [], error: null },
+    });
+
+    const result = await getOverviewDataFromClient(client);
+
+    expect(result.runs).toEqual([]);
+    expect(result.overviewReadError).toBe("Some Overview data is temporarily unavailable. Refresh to retry.");
+    expect(JSON.stringify(result)).not.toContain("JWT issued at future");
+  });
+
+  it("uses a normal exact count query so the evidence total remains available", async () => {
+    const { client, getObservationCountOptions } = overviewClient({
+      runs: { data: [{ id: "run-1", status: "succeeded" }], error: null },
+      findings: { data: [], error: null },
+      observationCount: { data: [{ id: "observation-1" }], count: 187, error: null },
+      activeRuns: { data: [], error: null },
+      latestObservations: { data: [], error: null },
+    });
+
+    const result = await getOverviewDataFromClient(client);
+
+    expect(result.observationCount).toBe(187);
+    expect(result.observationCountError).toBeNull();
+    expect(getObservationCountOptions()).toEqual({ count: "exact" });
+  });
+});
 
 describe("reportDeliveryStatusFromClient", () => {
   it("empty: no report row yet for this run", async () => {
