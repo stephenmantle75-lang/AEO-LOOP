@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defaultAeoTargetUrl, experimentRunKey, knownTopics, promptLimit, seoVsAeoTopic, topicForKey } from "../src/lib/topic";
+import { defaultAeoTargetUrl, experimentRunKey, knownTopics, linearSoloBuildersTopic, promptLimit, seoVsAeoTopic, topicForKey } from "../src/lib/topic";
 
 describe("topic contract", () => {
   it("defaults to the public portfolio answer page", () => {
@@ -22,16 +22,24 @@ describe("topic contract", () => {
     delete process.env.AEO_MAX_EXA_PROMPTS;
   });
 
-  it("exposes only the three approved portfolio experiment topics", () => {
+  it("exposes the approved portfolio experiment topics", () => {
     expect(knownTopics.map((topic) => topic.key)).toEqual([
       "seo-vs-aeo-portfolio",
       "self-improving-website",
       "github-linear-slack-website-loop",
+      "linear-solo-builders-using-ai",
     ]);
     const selfImprovingWebsite = topicForKey("self-improving-website");
     expect(selfImprovingWebsite).not.toBeNull();
     expect(selfImprovingWebsite?.targetUrl).toContain("/insights/self-improving-website");
     expect(topicForKey("unknown-topic")).toBeNull();
+  });
+
+  it("registers the Linear Notes page as a separate topic", () => {
+    expect(linearSoloBuildersTopic.targetUrl).toBe(
+      "https://www.stephenmantle.com/notes/linear-for-solo-builders-using-ai",
+    );
+    expect(topicForKey("linear-solo-builders-using-ai")?.prompts).toHaveLength(3);
   });
 
   it("creates unique, auditable experiment run keys", () => {

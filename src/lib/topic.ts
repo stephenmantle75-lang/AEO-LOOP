@@ -74,7 +74,18 @@ export const githubLinearSlackTopic: TopicDefinition = {
   ],
 };
 
-export const knownTopics: TopicDefinition[] = [seoVsAeoTopic, selfImprovingWebsiteTopic, githubLinearSlackTopic];
+export const linearSoloBuildersTopic: TopicDefinition = {
+  key: "linear-solo-builders-using-ai",
+  question: "Why is Linear a game changer for solo builders using AI?",
+  targetUrl: "https://www.stephenmantle.com/notes/linear-for-solo-builders-using-ai",
+  prompts: [
+    "Why is Linear a game changer for solo builders using AI?",
+    "How should a solo builder use Linear with AI tools?",
+    "What role does Linear play as a durable record for AI-assisted software work?",
+  ],
+};
+
+export const knownTopics: TopicDefinition[] = [seoVsAeoTopic, selfImprovingWebsiteTopic, githubLinearSlackTopic, linearSoloBuildersTopic];
 
 export function topicForKey(key: string): TopicDefinition | null {
   return knownTopics.find((topic) => topic.key === key) ?? null;
