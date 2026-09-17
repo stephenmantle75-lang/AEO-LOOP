@@ -21,7 +21,7 @@ the page will earn a citation.
 | Control topic | `seo-vs-aeo-portfolio` |
 | Control baseline run | `daily-observation:2026-08-27` |
 | Control run ID | `3fa3426a-c038-42cb-9949-20bdf65e8d93` |
-| Control target | `https://www.stephenmantle.com/insights/seo-vs-aeo-portfolio` |
+| Control target | `https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio` |
 | Portfolio repository | `stephenmantle-portfolio` |
 | Change branch | `feature/seo-aeo-variant-a` |
 | Current deployment | Local only |

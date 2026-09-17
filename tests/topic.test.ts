@@ -4,7 +4,7 @@ import { defaultAeoTargetUrl, experimentRunKey, knownTopics, promptLimit, seoVsA
 describe("topic contract", () => {
   it("defaults to the public portfolio answer page", () => {
     expect(defaultAeoTargetUrl).toBe(
-      "https://www.stephenmantle.com/insights/seo-vs-aeo-portfolio",
+      "https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio",
     );
   });
 
