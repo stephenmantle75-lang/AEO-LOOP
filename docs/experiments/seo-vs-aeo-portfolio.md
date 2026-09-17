@@ -20,8 +20,8 @@ current page remains the control until that variant is approved and deployed.
 | --- | --- |
 | `topic_key` | `seo-vs-aeo-portfolio` |
 | Question | What is the difference between SEO and AEO for a personal portfolio? |
-| Target URL | `https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio` |
-| Canonical URL | `https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio` |
+| Target URL | `https://www.stephenmantle.com/insights/seo-vs-aeo-portfolio` |
+| Canonical URL | `https://www.stephenmantle.com/insights/seo-vs-aeo-portfolio` |
 | Owner | Stephen Mantle |
 | Measurement status | Baseline blocked until the production page is verified as the intended answer page |
 

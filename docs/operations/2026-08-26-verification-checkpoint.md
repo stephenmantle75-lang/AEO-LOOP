@@ -11,7 +11,7 @@ Do not change the portfolio site during this hold.
 - Firecrawl inspected the Observatory URL by mistake and received HTTP 404.
 - Exa completed its bounded citation check and found no citation for the target.
 - The configured target has since been corrected to the public portfolio app:
-  `https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio`.
+  `https://www.stephenmantle.com/insights/seo-vs-aeo-portfolio`.
 - A manual retry on 26 August returned HTTP `202` because the daily key
   `daily-observation:2026-08-26` already exists. This is the expected
   idempotency guard; it did not call Firecrawl or Exa again.
