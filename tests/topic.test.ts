@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dailyComparisonKey, dailyPromptLimit, defaultAeoTargetUrl, defaultAeoVariantTargetUrl, experimentPromptLimit, experimentRunKey, knownTopics, normalizeAeoTargetUrl, promptLimit, seoVsAeoTopic, seoVsAeoVariantTopic, topicForKey } from "../src/lib/topic";
+import { dailyComparisonKey, dailyPromptLimit, defaultAeoTargetUrl, defaultAeoVariantTargetUrl, experimentPromptLimit, experimentRunKey, knownTopics, linearSoloBuildersTopic, normalizeAeoTargetUrl, promptLimit, seoVsAeoTopic, seoVsAeoVariantTopic, topicForKey } from "../src/lib/topic";
 
 describe("topic contract", () => {
   it("defaults to the isolated Vercel portfolio answer page", () => {
@@ -73,6 +73,7 @@ describe("topic contract", () => {
       "seo-vs-aeo-portfolio-variant-b",
       "self-improving-website",
       "github-linear-slack-website-loop",
+      "linear-solo-builders-using-ai",
     ]);
     expect(defaultAeoVariantTargetUrl).toBe(
       "https://stephenmantle-portfolio.vercel.app/insights/seo-vs-aeo-portfolio-variant-b",
@@ -84,6 +85,13 @@ describe("topic contract", () => {
     expect(selfImprovingWebsite).not.toBeNull();
     expect(selfImprovingWebsite?.targetUrl).toContain("/insights/self-improving-website");
     expect(topicForKey("unknown-topic")).toBeNull();
+  });
+
+  it("registers the Linear Notes page as a separate topic", () => {
+    expect(linearSoloBuildersTopic.targetUrl).toBe(
+      "https://www.stephenmantle.com/notes/linear-for-solo-builders-using-ai",
+    );
+    expect(topicForKey("linear-solo-builders-using-ai")?.prompts).toHaveLength(3);
   });
 
   it("creates unique, auditable experiment run keys", () => {
