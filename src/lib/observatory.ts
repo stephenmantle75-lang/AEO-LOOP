@@ -87,6 +87,7 @@ export type OverviewData = {
   findings: FindingRow[];
   runningRunCount: number;
   staleRunCount: number;
+  overviewReadError: string | null;
   observationCount: number | null;
   observationCountError: string | null;
   latestObservations: ObservationRow[];
@@ -338,49 +339,73 @@ export async function getFindingDetail(id: string): Promise<ObservatoryResult<{ 
   });
 }
 
-export async function getOverviewData(): Promise<ObservatoryResult<OverviewData>> {
-  const client = dashboardClient();
-  const empty: OverviewData = {
+const emptyOverviewData: OverviewData = {
     runs: [],
     findings: [],
     runningRunCount: 0,
     staleRunCount: 0,
+    overviewReadError: null,
     observationCount: null,
     observationCountError: null,
     latestObservations: [],
     latestObservationsError: null,
-  };
-  if (!client) return configuredResult(client, empty);
-  const [runsResult, findingsResult, observationsResult, activeRunsResult] = await Promise.all([
-    client.from("runs").select(runSelect).order("created_at", { ascending: false }).limit(8),
-    client.from("findings").select(findingSelect).order("created_at", { ascending: false }).limit(5),
-    client.from("observations").select("id", { count: "exact", head: true }),
-    client.from("runs").select("status, heartbeat_at").eq("status", "running"),
-  ]);
-  if (runsResult.error) throw new Error(`Runs could not be loaded from Supabase: ${runsResult.error.message}`);
-  if (findingsResult.error) throw new Error(`Findings could not be loaded from Supabase: ${findingsResult.error.message}`);
-  if (activeRunsResult.error) throw new Error(`Active runs could not be loaded from Supabase: ${activeRunsResult.error.message}`);
+};
+
+export async function getOverviewDataFromClient(client: SupabaseClient): Promise<OverviewData> {
+  const empty = { ...emptyOverviewData };
+
+  let runsResult;
+  let findingsResult;
+  let observationsResult;
+  let activeRunsResult;
+  try {
+    [runsResult, findingsResult, observationsResult, activeRunsResult] = await Promise.all([
+      client.from("runs").select(runSelect).order("created_at", { ascending: false }).limit(8),
+      client.from("findings").select(findingSelect).order("created_at", { ascending: false }).limit(5),
+      // A normal count query is more reliable here than PostgREST's HEAD/count path.
+      // We only need the count, but retaining the selected id also keeps the response portable.
+      client.from("observations").select("id", { count: "exact" }),
+      client.from("runs").select("status, heartbeat_at").eq("status", "running"),
+    ]);
+  } catch {
+    return { ...empty, overviewReadError: "Overview data is temporarily unavailable. Refresh to retry." };
+  }
+
+  const overviewReadError = runsResult.error || findingsResult.error || activeRunsResult.error
+    ? "Some Overview data is temporarily unavailable. Refresh to retry."
+    : null;
   const runs = (runsResult.data ?? []) as RunRow[];
   const activeRuns = (activeRunsResult.data ?? []) as Array<Pick<RunRow, "status" | "heartbeat_at">>;
   const latestRun = runs[0];
   let latestObservations: ObservationRow[] = [];
   let latestObservationsError: string | null = null;
   if (latestRun) {
-    const latestResult = await client.from("observations").select(observationSelect).eq("run_id", latestRun.id).order("created_at", { ascending: true });
-    if (latestResult.error) {
+    try {
+      const latestResult = await client.from("observations").select(observationSelect).eq("run_id", latestRun.id).order("created_at", { ascending: true });
+      if (latestResult.error) {
+        latestObservationsError = "Latest evidence is temporarily unavailable.";
+      } else {
+        latestObservations = (latestResult.data ?? []) as ObservationRow[];
+      }
+    } catch {
       latestObservationsError = "Latest evidence is temporarily unavailable.";
-    } else {
-      latestObservations = (latestResult.data ?? []) as ObservationRow[];
     }
   }
-  return configuredResult(client, {
+  return {
     runs,
-    findings: (findingsResult.data ?? []) as FindingRow[],
-    runningRunCount: activeRuns.length,
+    findings: findingsResult.error ? [] : (findingsResult.data ?? []) as FindingRow[],
+    runningRunCount: activeRunsResult.error ? 0 : activeRuns.length,
     staleRunCount: staleRunCount(activeRuns),
+    overviewReadError,
     observationCount: observationsResult.error ? null : observationsResult.count ?? 0,
     observationCountError: observationsResult.error ? "Evidence count is temporarily unavailable." : null,
     latestObservations,
     latestObservationsError,
-  });
+  };
+}
+
+export async function getOverviewData(): Promise<ObservatoryResult<OverviewData>> {
+  const client = dashboardClient();
+  if (!client) return configuredResult(client, { ...emptyOverviewData });
+  return configuredResult(client, await getOverviewDataFromClient(client));
 }
