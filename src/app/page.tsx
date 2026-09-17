@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ObservatoryPage() {
   const result = await getOverviewData();
-  const { runs, findings, runningRunCount, staleRunCount, observationCount, observationCountError, latestObservations, latestObservationsError } = result.data;
+  const { runs, findings, runningRunCount, staleRunCount, overviewReadError, observationCount, observationCountError, latestObservations, latestObservationsError } = result.data;
   const latest = runs[0];
   const rate = citationRate(latestObservations);
   const openFindings = findings.filter((finding) => finding.status === "new").length;
@@ -18,7 +18,7 @@ export default async function ObservatoryPage() {
   return <ObservatoryShell active="overview" findingCount={openFindings}>
     <PageHeader eyebrow="Observatory / Overview" title="Good morning, Stephen." description="A live review of what the AEO loop observed, learned, and is ready to review." connected={result.connected} />
     <ConnectionNotice connected={result.connected} />
-    {(observationCountError || latestObservationsError) && <div className="notice" role="status">Some Observatory metrics are temporarily unavailable. Other database-backed sections remain visible; refresh to retry the unavailable read.</div>}
+    {(overviewReadError || observationCountError || latestObservationsError) && <div className="notice" role="status">Some Observatory data is temporarily unavailable. Other database-backed sections remain visible; refresh to retry the unavailable read.</div>}
 
     <section className="cards" aria-label="Key metrics">
       <div className="card"><div className="card-label">Latest run</div><div className={`metric metric-status ${latest?.status ?? "empty"}`}>{latest?.status ?? "—"}</div><div className="metric-note">{latest ? formatDate(latest.created_at) : "No run recorded"}</div></div>
