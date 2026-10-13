@@ -364,7 +364,8 @@ export async function getOverviewDataFromClient(client: SupabaseClient): Promise
       client.from("findings").select(findingSelect).order("created_at", { ascending: false }).limit(5),
       // A normal count query is more reliable here than PostgREST's HEAD/count path.
       // We only need the count, but retaining the selected id also keeps the response portable.
-      client.from("observations").select("id", { count: "exact" }),
+      // Keep the response bounded while preserving PostgREST's exact total count.
+      client.from("observations").select("id", { count: "exact" }).limit(1),
       client.from("runs").select("status, heartbeat_at").eq("status", "running"),
     ]);
   } catch {

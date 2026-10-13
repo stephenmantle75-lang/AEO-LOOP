@@ -24,6 +24,7 @@ function overviewClient(options: {
   latestObservations: unknown;
 }) {
   let observationCountOptions: Record<string, unknown> | undefined;
+  let observationCountLimit: number | undefined;
 
   const client = {
     from: (name: string) => {
@@ -37,7 +38,10 @@ function overviewClient(options: {
           return builder;
         },
         order: () => builder,
-        limit: () => builder,
+        limit: (value?: number) => {
+          if (name === "observations" && state.count) observationCountLimit = value;
+          return builder;
+        },
         eq: (field: string, value: string) => {
           state[field as "status" | "runId"] = value;
           return builder;
@@ -56,7 +60,11 @@ function overviewClient(options: {
     },
   } as unknown as SupabaseClient;
 
-  return { client, getObservationCountOptions: () => observationCountOptions };
+  return {
+    client,
+    getObservationCountOptions: () => observationCountOptions,
+    getObservationCountLimit: () => observationCountLimit,
+  };
 }
 
 describe("overview reads", () => {
@@ -77,7 +85,7 @@ describe("overview reads", () => {
   });
 
   it("uses a normal exact count query so the evidence total remains available", async () => {
-    const { client, getObservationCountOptions } = overviewClient({
+    const { client, getObservationCountOptions, getObservationCountLimit } = overviewClient({
       runs: { data: [{ id: "run-1", status: "succeeded" }], error: null },
       findings: { data: [], error: null },
       observationCount: { data: [{ id: "observation-1" }], count: 187, error: null },
@@ -90,6 +98,7 @@ describe("overview reads", () => {
     expect(result.observationCount).toBe(187);
     expect(result.observationCountError).toBeNull();
     expect(getObservationCountOptions()).toEqual({ count: "exact" });
+    expect(getObservationCountLimit()).toBe(1);
   });
 });
 
