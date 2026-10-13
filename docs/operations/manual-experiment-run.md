@@ -70,6 +70,7 @@ Approved topic keys:
 - `seo-vs-aeo-portfolio-variant-b`
 - `self-improving-website`
 - `github-linear-slack-website-loop`
+- `linear-solo-builders-using-ai`
 
 The response includes the `runId`, `runType`, `topicKey`, run status,
 observation count, and report persistence status. A successful run is stored
