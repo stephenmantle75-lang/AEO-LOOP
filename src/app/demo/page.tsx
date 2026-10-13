@@ -9,6 +9,7 @@ export default async function DemoPage() {
   const latestRun = overview.data.runs[0] ?? null;
   const delivery = latestRun ? await getReportDeliveryStatus(latestRun.id) : null;
   const finding = latestRun ? overview.data.findings.find((item) => item.run_id === latestRun.id) ?? null : null;
+  const readError = overview.data.overviewReadError || overview.data.observationCountError || overview.data.latestObservationsError;
 
   return <ObservatoryShell active="demo" findingCount={overview.data.findings.filter((item) => item.status === "new").length}>
     <PageHeader
@@ -18,6 +19,7 @@ export default async function DemoPage() {
       statusTone={overview.connected ? "connected" : "disconnected"}
       statusText={overview.connected ? "● Live production data" : "○ Data unavailable"}
     />
+    {readError && <div className="notice" role="status">Some Observatory data is temporarily unavailable. Other database-backed sections remain visible; refresh to retry the unavailable read.</div>}
     <DemoClient run={latestRun} observations={overview.data.latestObservations} finding={finding} delivery={delivery} connected={overview.connected} />
   </ObservatoryShell>;
 }

@@ -8,10 +8,12 @@ export default async function IntegrationsPage() {
   const latest = result.data.runs[0];
   const observations = result.data.latestObservations;
   const delivery = latest ? await getReportDeliveryStatus(latest.id) : null;
+  const readError = result.data.overviewReadError || result.data.observationCountError || result.data.latestObservationsError;
 
   return <ObservatoryShell active="integrations" findingCount={result.data.findings.filter((finding) => finding.status === "new").length}>
     <PageHeader eyebrow="Observatory / Integrations" title="Every connection has a job" description="The integration map shows where evidence comes from, where decisions are recorded, and which delivery bridges are still intentionally off." connected={result.connected} />
     <ConnectionNotice connected={result.connected} />
+    {readError && <div className="notice" role="status">Some Observatory data is temporarily unavailable. Other database-backed sections remain visible; refresh to retry the unavailable read.</div>}
 
     <section className="panel page-panel"><div className="panel-head"><span className="panel-title">Current connection health</span><span className="panel-meta">latest stored run</span></div><div className="integration-grid">
       <article className="integration-card"><div className="integration-state connected">●</div><div><h2>Supabase</h2><p>System of record for runs, observations, and findings.</p><span>{result.connected ? "Connected" : "Waiting for server-only variables"}</span></div></article>
